@@ -874,6 +874,22 @@ checkUser();
 </script>
 
 
+<script>
+window.openSignup = function () {
+    document.getElementById("signupModal").classList.add("active");
+};
 
+window.closeSignup = function () {
+    document.getElementById("signupModal").classList.remove("active");
+};
+
+window.openLogin = function () {
+    document.getElementById("loginModal").classList.add("active");
+};
+
+window.closeLogin = function () {
+    document.getElementById("loginModal").classList.remove("active");
+};
+</script>
 </body>
 </html>
