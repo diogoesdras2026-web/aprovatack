@@ -801,6 +801,175 @@ signupForm.addEventListener(
         }
     }
 );
+/* ==========================================
+   DASHBOARD
+   ========================================== */
+
+function showDashboard(user) {
+
+    document.getElementById("home").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+
+    document.getElementById("loginHeaderButton").style.display = "none";
+    document.getElementById("logoutHeaderButton").style.display = "block";
+
+    let name = "Estudante";
+
+    if (
+        user &&
+        user.user_metadata &&
+        user.user_metadata.name
+    ) {
+        name = user.user_metadata.name;
+    } else if (user && user.email) {
+        name = user.email;
+    }
+
+    document.getElementById("welcomeUser").textContent =
+        "Olá, " + name + "! 👋";
+}
+
+
+function showHome() {
+
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("home").style.display = "flex";
+
+    document.getElementById("loginHeaderButton").style.display = "block";
+    document.getElementById("logoutHeaderButton").style.display = "none";
+}
+
+
+/* ==========================================
+   LOGIN
+   ========================================== */
+
+const loginForm =
+    document.getElementById("loginForm");
+
+loginForm.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+        const email =
+            document
+                .getElementById("loginEmail")
+                .value
+                .trim();
+
+        const password =
+            document
+                .getElementById("loginPassword")
+                .value;
+
+        const message =
+            document.getElementById("loginMessage");
+
+        message.className = "message";
+        message.textContent = "Entrando...";
+
+        try {
+
+            const { data, error } =
+                await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+            if (error) {
+                throw error;
+            }
+
+            message.className = "message success";
+            message.textContent =
+                "Login realizado com sucesso!";
+
+            setTimeout(function() {
+
+                closeLogin();
+                showDashboard(data.user);
+
+            }, 500);
+
+        } catch (error) {
+
+            console.error(error);
+
+            message.className = "message error";
+            message.textContent =
+                "Erro ao entrar: " + error.message;
+        }
+    }
+);
+
+
+/* ==========================================
+   LOGOUT
+   ========================================== */
+
+window.logout = async function() {
+
+    await supabaseClient.auth.signOut();
+
+    showHome();
+};
+
+
+/* ==========================================
+   VERIFICAR SESSÃO EXISTENTE
+   ========================================== */
+
+async function checkSession() {
+
+    const { data, error } =
+        await supabaseClient.auth.getSession();
+
+    if (
+        !error &&
+        data.session &&
+        data.session.user
+    ) {
+
+        showDashboard(
+            data.session.user
+        );
+
+    } else {
+
+        showHome();
+    }
+}
+
+
+/* ==========================================
+   ACOMPANHAR AUTENTICAÇÃO
+   ========================================== */
+
+supabaseClient.auth.onAuthStateChange(
+    function(event, session) {
+
+        if (
+            event === "SIGNED_IN" &&
+            session &&
+            session.user
+        ) {
+
+            showDashboard(
+                session.user
+            );
+        }
+
+        if (event === "SIGNED_OUT") {
+
+            showHome();
+        }
+    }
+);
+
+
+checkSession();    
 </script>
 </body>
 </html>
