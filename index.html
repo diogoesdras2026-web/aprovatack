@@ -6,6 +6,9 @@
 
     <title>AprovaTrack - Sua preparação inteligente</title>
 
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -29,7 +32,7 @@
         }
 
         .logo {
-            font-size: 24px;
+            font-size: 25px;
             font-weight: bold;
         }
 
@@ -37,13 +40,20 @@
             color: #2563eb;
         }
 
-        .login {
+        .header-button {
+            background: none;
+            border: none;
             color: #2563eb;
-            text-decoration: none;
             font-weight: bold;
+            cursor: pointer;
+            font-size: 15px;
         }
 
         main {
+            min-height: calc(100vh - 80px);
+        }
+
+        #home {
             min-height: calc(100vh - 80px);
             display: flex;
             align-items: center;
@@ -95,10 +105,8 @@
         }
 
         .button {
-            display: inline-block;
             padding: 15px 25px;
             border-radius: 10px;
-            text-decoration: none;
             font-weight: bold;
             cursor: pointer;
             border: none;
@@ -116,14 +124,14 @@
             border: 1px solid #dbe3f0;
         }
 
-        .dashboard {
+        .preview {
             background: white;
             border-radius: 20px;
             padding: 25px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 20px 50px rgba(0,0,0,.08);
         }
 
-        .dashboard-title {
+        .preview-title {
             font-weight: bold;
             font-size: 18px;
             margin-bottom: 20px;
@@ -161,6 +169,159 @@
             border-radius: 10px;
         }
 
+        /* MODAL */
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .60);
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-box {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 30px 80px rgba(0,0,0,.20);
+        }
+
+        .modal-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-top h2 {
+            font-size: 26px;
+        }
+
+        .close {
+            border: none;
+            background: none;
+            font-size: 25px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 17px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d7dce5;
+            border-radius: 9px;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: 2px solid #bfdbfe;
+            border-color: #2563eb;
+        }
+
+        .submit {
+            width: 100%;
+            background: #2563eb;
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 9px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            line-height: 1.4;
+        }
+
+        .message.success {
+            display: block;
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .message.error {
+            display: block;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        /* DASHBOARD */
+
+        #dashboard {
+            display: none;
+            max-width: 1200px;
+            margin: auto;
+            padding: 45px 25px;
+        }
+
+        .dashboard-header {
+            margin-bottom: 30px;
+        }
+
+        .dashboard-header h2 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .dashboard-header p {
+            color: #64748b;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .dashboard-card .title {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .dashboard-card .number {
+            margin-top: 8px;
+            font-size: 27px;
+            font-weight: bold;
+        }
+
+        .start-box {
+            margin-top: 25px;
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid #e5e7eb;
+        }
+
         footer {
             text-align: center;
             padding: 25px;
@@ -168,7 +329,7 @@
             font-size: 14px;
         }
 
-        @media (max-width: 800px) {
+        @media (max-width: 850px) {
             .container {
                 grid-template-columns: 1fr;
             }
@@ -177,8 +338,14 @@
                 font-size: 40px;
             }
 
-            .dashboard {
-                margin-top: 20px;
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -187,114 +354,694 @@
 <body>
 
 <header>
-    <div class="logo">Aprova<span>Track</span></div>
 
-    <a href="#" class="login">Entrar</a>
+    <div class="logo">
+        Aprova<span>Track</span>
+    </div>
+
+    <button
+        id="loginHeaderButton"
+        class="header-button"
+        onclick="openLogin()"
+    >
+        Entrar
+    </button>
+
+    <button
+        id="logoutHeaderButton"
+        class="header-button"
+        onclick="logout()"
+        style="display:none;"
+    >
+        Sair
+    </button>
+
 </header>
 
 <main>
 
-    <div class="container">
+    <!-- HOME -->
 
-        <section>
+    <section id="home">
 
-            <div class="tag">
-                🎯 Estudos inteligentes para concursos
+        <div class="container">
+
+            <div>
+
+                <div class="tag">
+                    🎯 Estudos inteligentes para concursos
+                </div>
+
+                <h1>
+                    Estude melhor.<br>
+                    <span>Acompanhe sua evolução.</span>
+                </h1>
+
+                <p class="description">
+                    Organize seus estudos, analise seu edital,
+                    registre questões e erros e acompanhe seu
+                    desempenho até a aprovação.
+                </p>
+
+                <div class="buttons">
+
+                    <button
+                        class="button primary"
+                        onclick="openSignup()"
+                    >
+                        Criar minha conta
+                    </button>
+
+                    <button
+                        class="button secondary"
+                        onclick="alert('Em breve você poderá conhecer todos os recursos do AprovaTrack.')"
+                    >
+                        Conhecer a plataforma
+                    </button>
+
+                </div>
+
             </div>
 
-            <h1>
-                Estude melhor.<br>
-                <span>Acompanhe sua evolução.</span>
-            </h1>
+            <div class="preview">
 
-            <p class="description">
-                Organize seus estudos, analise seu edital,
-                acompanhe questões, erros e desempenho e
-                receba recomendações inteligentes para sua preparação.
+                <div class="preview-title">
+                    📊 Seu desempenho
+                </div>
+
+                <div class="card">
+                    <div class="card-label">
+                        Índice de preparação
+                    </div>
+
+                    <div class="card-value">
+                        76/100
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-label">
+                        Questões resolvidas
+                    </div>
+
+                    <div class="card-value">
+                        1.248
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-label">
+                        Taxa de acertos
+                    </div>
+
+                    <div class="card-value">
+                        82%
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-label">
+                        Principal ponto de atenção
+                    </div>
+
+                    <div class="card-value">
+                        Direito Tributário
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- DASHBOARD -->
+
+    <section id="dashboard">
+
+        <div class="dashboard-header">
+
+            <h2 id="welcomeUser">
+                Bem-vindo ao AprovaTrack 👋
+            </h2>
+
+            <p>
+                Aqui começa sua preparação inteligente.
             </p>
 
-            <div class="buttons">
+        </div>
 
-                <a href="#" class="button primary">
-                    Criar minha conta
-                </a>
+        <div class="dashboard-grid">
 
-                <a href="#" class="button secondary">
-                    Conhecer a plataforma
-                </a>
-
+            <div class="dashboard-card">
+                <div class="title">
+                    ⏱️ Tempo estudado hoje
+                </div>
+                <div class="number">
+                    0 min
+                </div>
             </div>
 
-        </section>
-
-
-        <section class="dashboard">
-
-            <div class="dashboard-title">
-                📊 Seu desempenho
+            <div class="dashboard-card">
+                <div class="title">
+                    📝 Questões resolvidas
+                </div>
+                <div class="number">
+                    0
+                </div>
             </div>
 
-            <div class="card">
-
-                <div class="card-label">
-                    Índice de preparação
+            <div class="dashboard-card">
+                <div class="title">
+                    ✅ Taxa de acertos
                 </div>
-
-                <div class="card-value">
-                    76/100
+                <div class="number">
+                    —
                 </div>
-
-                <div class="progress">
-                    <div class="progress-bar"></div>
-                </div>
-
             </div>
 
-            <div class="card">
-
-                <div class="card-label">
-                    Questões resolvidas
+            <div class="dashboard-card">
+                <div class="title">
+                    🎯 Índice de preparação
                 </div>
-
-                <div class="card-value">
-                    1.248
+                <div class="number">
+                    —
                 </div>
-
             </div>
 
-            <div class="card">
+        </div>
 
-                <div class="card-label">
-                    Taxa de acertos
-                </div>
+        <div class="start-box">
 
-                <div class="card-value">
-                    82%
-                </div>
+            <h3>🚀 Primeiros passos</h3>
 
+            <p style="margin-top:12px;color:#64748b;line-height:1.6;">
+                Sua conta está funcionando. Na próxima etapa
+                vamos permitir que você cadastre seu primeiro
+                concurso e envie o edital para análise.
+            </p>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- MODAL CADASTRO -->
+
+<div id="signupModal" class="modal">
+
+    <div class="modal-box">
+
+        <div class="modal-top">
+            <h2>Criar conta</h2>
+            <button
+                class="close"
+                onclick="closeSignup()"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="signupForm">
+
+            <div class="form-group">
+                <label>Nome</label>
+                <input
+                    id="signupName"
+                    type="text"
+                    required
+                    placeholder="Seu nome"
+                >
             </div>
 
-            <div class="card">
-
-                <div class="card-label">
-                    Principal ponto de atenção
-                </div>
-
-                <div class="card-value">
-                    Direito Tributário
-                </div>
-
+            <div class="form-group">
+                <label>E-mail</label>
+                <input
+                    id="signupEmail"
+                    type="email"
+                    required
+                    placeholder="seuemail@email.com"
+                >
             </div>
 
-        </section>
+            <div class="form-group">
+                <label>Senha</label>
+                <input
+                    id="signupPassword"
+                    type="password"
+                    required
+                    minlength="6"
+                    placeholder="Crie uma senha"
+                >
+            </div>
+
+            <button class="submit" type="submit">
+                Criar minha conta
+            </button>
+
+            <div
+                id="signupMessage"
+                class="message"
+            ></div>
+
+        </form>
 
     </div>
 
-</main>
+</div>
+
+
+<!-- MODAL LOGIN -->
+
+<div id="loginModal" class="modal">
+
+    <div class="modal-box">
+
+        <div class="modal-top">
+            <h2>Entrar</h2>
+
+            <button
+                class="close"
+                onclick="closeLogin()"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="loginForm">
+
+            <div class="form-group">
+                <label>E-mail</label>
+                <input
+                    id="loginEmail"
+                    type="email"
+                    required
+                    placeholder="seuemail@email.com"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Senha</label>
+                <input
+                    id="loginPassword"
+                    type="password"
+                    required
+                    placeholder="Sua senha"
+                >
+            </div>
+
+            <button class="submit" type="submit">
+                Entrar
+            </button>
+
+            <div
+                id="loginMessage"
+                class="message"
+            ></div>
+
+        </form>
+
+    </div>
+
+</div>
+
 
 <footer>
     © 2026 AprovaTrack — Plataforma inteligente de preparação.
 </footer>
+
+
+<script>
+
+    /* ==========================================
+       CONFIGURAÇÃO SUPABASE
+       ========================================== */
+
+    const SUPABASE_URL =
+        "https://axxqqacfyrzgpgmqjxb.supabase.co";
+
+    const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK
+";
+
+
+    const supabaseClient =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY,
+            {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true
+                }
+            }
+        );
+
+
+    /* ==========================================
+       MODAIS
+       ========================================== */
+
+    function openSignup() {
+        document
+            .getElementById("signupModal")
+            .classList.add("active");
+    }
+
+    function closeSignup() {
+        document
+            .getElementById("signupModal")
+            .classList.remove("active");
+    }
+
+    function openLogin() {
+        document
+            .getElementById("loginModal")
+            .classList.add("active");
+    }
+
+    function closeLogin() {
+        document
+            .getElementById("loginModal")
+            .classList.remove("active");
+    }
+
+
+    /* ==========================================
+       CADASTRO
+       ========================================== */
+
+    document
+        .getElementById("signupForm")
+        .addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+                const name =
+                    document.getElementById(
+                        "signupName"
+                    ).value.trim();
+
+                const email =
+                    document.getElementById(
+                        "signupEmail"
+                    ).value.trim();
+
+                const password =
+                    document.getElementById(
+                        "signupPassword"
+                    ).value;
+
+                const message =
+                    document.getElementById(
+                        "signupMessage"
+                    );
+
+                message.className = "message";
+                message.textContent = "";
+
+                const { data, error } =
+                    await supabaseClient.auth.signUp({
+
+                        email: email,
+
+                        password: password,
+
+                        options: {
+
+                            data: {
+                                name: name
+                            },
+
+                            emailRedirectTo:
+                                "https://aprovatack.vercel.app"
+                        }
+
+                    });
+
+
+                if (error) {
+
+                    message.className =
+                        "message error";
+
+                    message.textContent =
+                        "Não foi possível criar a conta: "
+                        + error.message;
+
+                    return;
+                }
+
+
+                if (data.session) {
+
+                    message.className =
+                        "message success";
+
+                    message.textContent =
+                        "Conta criada com sucesso!";
+
+                    setTimeout(function() {
+
+                        closeSignup();
+
+                        showDashboard(
+                            data.user
+                        );
+
+                    }, 1000);
+
+                } else {
+
+                    message.className =
+                        "message success";
+
+                    message.textContent =
+                        "Conta criada! Verifique seu e-mail e clique no link de confirmação para ativar sua conta.";
+
+                }
+
+            }
+        );
+
+
+    /* ==========================================
+       LOGIN
+       ========================================== */
+
+    document
+        .getElementById("loginForm")
+        .addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+                const email =
+                    document.getElementById(
+                        "loginEmail"
+                    ).value.trim();
+
+                const password =
+                    document.getElementById(
+                        "loginPassword"
+                    ).value;
+
+                const message =
+                    document.getElementById(
+                        "loginMessage"
+                    );
+
+                message.className = "message";
+                message.textContent = "";
+
+
+                const { data, error } =
+                    await supabaseClient.auth
+                        .signInWithPassword({
+
+                            email: email,
+
+                            password: password
+
+                        });
+
+
+                if (error) {
+
+                    message.className =
+                        "message error";
+
+                    message.textContent =
+                        "Não foi possível entrar. Confira seu e-mail e senha.";
+
+                    return;
+                }
+
+
+                message.className =
+                    "message success";
+
+                message.textContent =
+                    "Login realizado com sucesso!";
+
+
+                setTimeout(function() {
+
+                    closeLogin();
+
+                    showDashboard(
+                        data.user
+                    );
+
+                }, 700);
+
+            }
+        );
+
+
+    /* ==========================================
+       DASHBOARD
+       ========================================== */
+
+    function showDashboard(user) {
+
+        document.getElementById(
+            "home"
+        ).style.display = "none";
+
+        document.getElementById(
+            "dashboard"
+        ).style.display = "block";
+
+        document.getElementById(
+            "loginHeaderButton"
+        ).style.display = "none";
+
+        document.getElementById(
+            "logoutHeaderButton"
+        ).style.display = "block";
+
+
+        const name =
+            user?.user_metadata?.name
+            || user?.email
+            || "Estudante";
+
+
+        document.getElementById(
+            "welcomeUser"
+        ).textContent =
+            "Olá, " + name + "! 👋";
+
+    }
+
+
+    function showHome() {
+
+        document.getElementById(
+            "dashboard"
+        ).style.display = "none";
+
+        document.getElementById(
+            "home"
+        ).style.display = "flex";
+
+        document.getElementById(
+            "loginHeaderButton"
+        ).style.display = "block";
+
+        document.getElementById(
+            "logoutHeaderButton"
+        ).style.display = "none";
+
+    }
+
+
+    /* ==========================================
+       LOGOUT
+       ========================================== */
+
+    async function logout() {
+
+        await supabaseClient.auth.signOut();
+
+        showHome();
+
+    }
+
+
+    /* ==========================================
+       VERIFICAR USUÁRIO AO ABRIR SITE
+       ========================================== */
+
+    async function checkUser() {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.auth.getUser();
+
+
+        if (!error && data.user) {
+
+            showDashboard(
+                data.user
+            );
+
+        } else {
+
+            showHome();
+
+        }
+
+    }
+
+
+    /* ==========================================
+       MUDANÇAS DE AUTENTICAÇÃO
+       ========================================== */
+
+    supabaseClient.auth.onAuthStateChange(
+        function(event, session) {
+
+            if (
+                session &&
+                session.user
+            ) {
+
+                showDashboard(
+                    session.user
+                );
+
+            }
+
+            if (
+                event === "SIGNED_OUT"
+            ) {
+
+                showHome();
+
+            }
+
+        }
+    );
+
+
+    checkUser();
+
+</script>
 
 </body>
 </html>
