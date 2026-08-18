@@ -676,372 +676,204 @@
 <footer>
     © 2026 AprovaTrack — Plataforma inteligente de preparação.
 </footer>
-
-
 <script>
+const SUPABASE_URL = "https://axxqqacfyrzgpgmqjxb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "COLE_AQUI_SUA_CHAVE";
 
-    /* ==========================================
-       CONFIGURAÇÃO SUPABASE
-       ========================================== */
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+);
 
-    const SUPABASE_URL =
-        "https://axxqqacfyrzgpgmqjxb.supabase.co";
-
-    const SUPABASE_PUBLISHABLE_KEY =
-        "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
-";
+console.log("AprovaTrack JS carregado com sucesso");
 
 
-    const supabaseClient =
-        window.supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_PUBLISHABLE_KEY,
-            {
-                auth: {
-                    persistSession: true,
-                    autoRefreshToken: true,
-                    detectSessionInUrl: true
-                }
-            }
-        );
+function openSignup() {
+    document.getElementById("signupModal").classList.add("active");
+}
+
+function closeSignup() {
+    document.getElementById("signupModal").classList.remove("active");
+}
+
+function openLogin() {
+    document.getElementById("loginModal").classList.add("active");
+}
+
+function closeLogin() {
+    document.getElementById("loginModal").classList.remove("active");
+}
 
 
-    /* ==========================================
-       MODAIS
-       ========================================== */
+function showDashboard(user) {
+    document.getElementById("home").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
 
-    function openSignup() {
-        document
-            .getElementById("signupModal")
-            .classList.add("active");
+    document.getElementById("loginHeaderButton").style.display = "none";
+    document.getElementById("logoutHeaderButton").style.display = "block";
+
+    let name = "Estudante";
+
+    if (user && user.user_metadata && user.user_metadata.name) {
+        name = user.user_metadata.name;
+    } else if (user && user.email) {
+        name = user.email;
     }
 
-    function closeSignup() {
-        document
-            .getElementById("signupModal")
-            .classList.remove("active");
-    }
+    document.getElementById("welcomeUser").textContent =
+        "Olá, " + name + "! 👋";
+}
 
-    function openLogin() {
-        document
-            .getElementById("loginModal")
-            .classList.add("active");
-    }
 
-    function closeLogin() {
-        document
-            .getElementById("loginModal")
-            .classList.remove("active");
-    }
+function showHome() {
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("home").style.display = "flex";
 
+    document.getElementById("loginHeaderButton").style.display = "block";
+    document.getElementById("logoutHeaderButton").style.display = "none";
+}
 
-    /* ==========================================
-       CADASTRO
-       ========================================== */
 
-    document
-        .getElementById("signupForm")
-        .addEventListener(
-            "submit",
-            async function(event) {
+document.getElementById("signupForm").addEventListener(
+    "submit",
+    async function(event) {
 
-                event.preventDefault();
-
-                const name =
-                    document.getElementById(
-                        "signupName"
-                    ).value.trim();
-
-                const email =
-                    document.getElementById(
-                        "signupEmail"
-                    ).value.trim();
-
-                const password =
-                    document.getElementById(
-                        "signupPassword"
-                    ).value;
-
-                const message =
-                    document.getElementById(
-                        "signupMessage"
-                    );
-
-                message.className = "message";
-                message.textContent = "";
-
-                const { data, error } =
-                    await supabaseClient.auth.signUp({
-
-                        email: email,
-
-                        password: password,
-
-                        options: {
-
-                            data: {
-                                name: name
-                            },
-
-                            emailRedirectTo:
-                                "https://aprovatack.vercel.app"
-                        }
-
-                    });
-
-
-                if (error) {
-
-                    message.className =
-                        "message error";
-
-                    message.textContent =
-                        "Não foi possível criar a conta: "
-                        + error.message;
-
-                    return;
-                }
-
-
-                if (data.session) {
-
-                    message.className =
-                        "message success";
-
-                    message.textContent =
-                        "Conta criada com sucesso!";
-
-                    setTimeout(function() {
-
-                        closeSignup();
-
-                        showDashboard(
-                            data.user
-                        );
-
-                    }, 1000);
-
-                } else {
-
-                    message.className =
-                        "message success";
-
-                    message.textContent =
-                        "Conta criada! Verifique seu e-mail e clique no link de confirmação para ativar sua conta.";
-
-                }
-
-            }
-        );
-
-
-    /* ==========================================
-       LOGIN
-       ========================================== */
-
-    document
-        .getElementById("loginForm")
-        .addEventListener(
-            "submit",
-            async function(event) {
-
-                event.preventDefault();
-
-                const email =
-                    document.getElementById(
-                        "loginEmail"
-                    ).value.trim();
-
-                const password =
-                    document.getElementById(
-                        "loginPassword"
-                    ).value;
-
-                const message =
-                    document.getElementById(
-                        "loginMessage"
-                    );
-
-                message.className = "message";
-                message.textContent = "";
-
-
-                const { data, error } =
-                    await supabaseClient.auth
-                        .signInWithPassword({
-
-                            email: email,
-
-                            password: password
-
-                        });
-
-
-                if (error) {
-
-                    message.className =
-                        "message error";
-
-                    message.textContent =
-                        "Não foi possível entrar. Confira seu e-mail e senha.";
-
-                    return;
-                }
-
-
-                message.className =
-                    "message success";
-
-                message.textContent =
-                    "Login realizado com sucesso!";
-
-
-                setTimeout(function() {
-
-                    closeLogin();
-
-                    showDashboard(
-                        data.user
-                    );
-
-                }, 700);
-
-            }
-        );
-
-
-    /* ==========================================
-       DASHBOARD
-       ========================================== */
-
-    function showDashboard(user) {
-
-        document.getElementById(
-            "home"
-        ).style.display = "none";
-
-        document.getElementById(
-            "dashboard"
-        ).style.display = "block";
-
-        document.getElementById(
-            "loginHeaderButton"
-        ).style.display = "none";
-
-        document.getElementById(
-            "logoutHeaderButton"
-        ).style.display = "block";
-
+        event.preventDefault();
 
         const name =
-            user?.user_metadata?.name
-            || user?.email
-            || "Estudante";
+            document.getElementById("signupName").value.trim();
 
+        const email =
+            document.getElementById("signupEmail").value.trim();
 
-        document.getElementById(
-            "welcomeUser"
-        ).textContent =
-            "Olá, " + name + "! 👋";
+        const password =
+            document.getElementById("signupPassword").value;
 
-    }
+        const message =
+            document.getElementById("signupMessage");
 
+        message.className = "message";
+        message.textContent = "";
 
-    function showHome() {
+        const { data, error } =
+            await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        name: name
+                    },
+                    emailRedirectTo:
+                        "https://aprovatack.vercel.app"
+                }
+            });
 
-        document.getElementById(
-            "dashboard"
-        ).style.display = "none";
+        if (error) {
+            message.className = "message error";
+            message.textContent =
+                "Erro ao criar conta: " + error.message;
+            return;
+        }
 
-        document.getElementById(
-            "home"
-        ).style.display = "flex";
+        if (data.session) {
+            message.className = "message success";
+            message.textContent =
+                "Conta criada com sucesso!";
 
-        document.getElementById(
-            "loginHeaderButton"
-        ).style.display = "block";
-
-        document.getElementById(
-            "logoutHeaderButton"
-        ).style.display = "none";
-
-    }
-
-
-    /* ==========================================
-       LOGOUT
-       ========================================== */
-
-    async function logout() {
-
-        await supabaseClient.auth.signOut();
-
-        showHome();
-
-    }
-
-
-    /* ==========================================
-       VERIFICAR USUÁRIO AO ABRIR SITE
-       ========================================== */
-
-    async function checkUser() {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.auth.getUser();
-
-
-        if (!error && data.user) {
-
-            showDashboard(
-                data.user
-            );
+            setTimeout(function() {
+                closeSignup();
+                showDashboard(data.user);
+            }, 800);
 
         } else {
-
-            showHome();
-
+            message.className = "message success";
+            message.textContent =
+                "Conta criada! Verifique seu e-mail para confirmar o cadastro.";
         }
-
     }
+);
 
 
-    /* ==========================================
-       MUDANÇAS DE AUTENTICAÇÃO
-       ========================================== */
+document.getElementById("loginForm").addEventListener(
+    "submit",
+    async function(event) {
 
-    supabaseClient.auth.onAuthStateChange(
-        function(event, session) {
+        event.preventDefault();
 
-            if (
-                session &&
-                session.user
-            ) {
+        const email =
+            document.getElementById("loginEmail").value.trim();
 
-                showDashboard(
-                    session.user
-                );
+        const password =
+            document.getElementById("loginPassword").value;
 
-            }
+        const message =
+            document.getElementById("loginMessage");
 
-            if (
-                event === "SIGNED_OUT"
-            ) {
+        message.className = "message";
+        message.textContent = "";
 
-                showHome();
+        const { data, error } =
+            await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
 
-            }
-
+        if (error) {
+            message.className = "message error";
+            message.textContent =
+                "Não foi possível entrar. Verifique e-mail, senha e confirmação do cadastro.";
+            return;
         }
-    );
+
+        message.className = "message success";
+        message.textContent =
+            "Login realizado com sucesso!";
+
+        setTimeout(function() {
+            closeLogin();
+            showDashboard(data.user);
+        }, 500);
+    }
+);
 
 
-    checkUser();
+async function logout() {
+    await supabaseClient.auth.signOut();
+    showHome();
+}
 
+
+async function checkUser() {
+
+    const { data } =
+        await supabaseClient.auth.getSession();
+
+    if (data.session && data.session.user) {
+        showDashboard(data.session.user);
+    } else {
+        showHome();
+    }
+}
+
+
+supabaseClient.auth.onAuthStateChange(
+    function(event, session) {
+
+        if (session && session.user) {
+            showDashboard(session.user);
+        }
+
+        if (event === "SIGNED_OUT") {
+            showHome();
+        }
+    }
+);
+
+
+checkUser();
 </script>
+
+
 
 </body>
 </html>
