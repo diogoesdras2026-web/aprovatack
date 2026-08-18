@@ -538,15 +538,28 @@
 
         <div class="start-box">
 
-            <h3>🚀 Primeiros passos</h3>
+    <h3>🎯 Meu concurso</h3>
 
-            <p style="margin-top:12px;color:#64748b;line-height:1.6;">
-                Sua conta está funcionando. Na próxima etapa
-                vamos permitir que você cadastre seu primeiro
-                concurso e envie o edital para análise.
-            </p>
+    <p style="margin-top:10px;color:#64748b;line-height:1.6;">
+        Cadastre o concurso para o qual você está se preparando.
+        Depois poderemos adicionar e analisar o edital.
+    </p>
 
-        </div>
+    <button
+        class="button primary"
+        onclick="openExamModal()"
+        style="margin-top:18px;"
+    >
+        + Cadastrar concurso
+    </button>
+
+    <div
+        id="examList"
+        style="margin-top:25px;"
+    >
+    </div>
+
+</div>
 
     </section>
 
@@ -672,7 +685,94 @@
 
 </div>
 
+<!-- MODAL CADASTRAR CONCURSO -->
 
+<div id="examModal" class="modal">
+
+    <div class="modal-box">
+
+        <div class="modal-top">
+
+            <h2>Cadastrar concurso</h2>
+
+            <button
+                class="close"
+                onclick="closeExamModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <form id="examForm">
+
+            <div class="form-group">
+                <label>Nome do concurso *</label>
+
+                <input
+                    id="examName"
+                    type="text"
+                    required
+                    placeholder="Ex.: SEFAZ Ceará"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Órgão</label>
+
+                <input
+                    id="examOrganization"
+                    type="text"
+                    placeholder="Ex.: Secretaria da Fazenda"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Cargo</label>
+
+                <input
+                    id="examPosition"
+                    type="text"
+                    placeholder="Ex.: Auditor Fiscal"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Banca</label>
+
+                <input
+                    id="examBoard"
+                    type="text"
+                    placeholder="Ex.: FCC"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Data da prova</label>
+
+                <input
+                    id="examDate"
+                    type="date"
+                >
+            </div>
+
+            <button
+                class="submit"
+                type="submit"
+            >
+                Salvar concurso
+            </button>
+
+            <div
+                id="examMessage"
+                class="message"
+            ></div>
+
+        </form>
+
+    </div>
+
+</div>
 <footer>
     © 2026 AprovaTrack — Plataforma inteligente de preparação.
 </footer>
@@ -805,7 +905,7 @@ signupForm.addEventListener(
    DASHBOARD
    ========================================== */
 
-function showDashboard(user) {
+function showDashboard(user) loadExams();{
 
     document.getElementById("home").style.display = "none";
     document.getElementById("dashboard").style.display = "block";
@@ -968,7 +1068,319 @@ supabaseClient.auth.onAuthStateChange(
     }
 );
 
+/* ==========================================
+   CONCURSOS
+   ========================================== */
 
+window.openExamModal = function () {
+
+    document
+        .getElementById("examModal")
+        .classList.add("active");
+};
+
+
+window.closeExamModal = function () {
+
+    document
+        .getElementById("examModal")
+        .classList.remove("active");
+};
+
+
+/* ==========================================
+   SALVAR CONCURSO
+   ========================================== */
+
+const examForm =
+    document.getElementById("examForm");
+
+
+examForm.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+        const message =
+            document.getElementById("examMessage");
+
+        message.className = "message";
+        message.textContent =
+            "Salvando concurso...";
+
+
+        const name =
+            document
+                .getElementById("examName")
+                .value
+                .trim();
+
+        const organization =
+            document
+                .getElementById("examOrganization")
+                .value
+                .trim();
+
+        const position =
+            document
+                .getElementById("examPosition")
+                .value
+                .trim();
+
+        const board =
+            document
+                .getElementById("examBoard")
+                .value
+                .trim();
+
+        const examDate =
+            document
+                .getElementById("examDate")
+                .value;
+
+
+        try {
+
+            const {
+                data: userData,
+                error: userError
+            } =
+                await supabaseClient.auth.getUser();
+
+
+            if (
+                userError ||
+                !userData.user
+            ) {
+
+                throw new Error(
+                    "Usuário não autenticado."
+                );
+            }
+
+
+            const user =
+                userData.user;
+
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient
+                    .from("exams")
+                    .insert({
+                        user_id: user.id,
+                        name: name,
+                        organization:
+                            organization || null,
+                        position:
+                            position || null,
+                        board:
+                            board || null,
+                        exam_date:
+                            examDate || null,
+                        status: "active"
+                    })
+                    .select();
+
+
+            if (error) {
+                throw error;
+            }
+
+
+            message.className =
+                "message success";
+
+            message.textContent =
+                "Concurso cadastrado com sucesso!";
+
+
+            examForm.reset();
+
+
+            await loadExams();
+
+
+            setTimeout(function() {
+
+                closeExamModal();
+
+                message.className =
+                    "message";
+
+                message.textContent = "";
+
+            }, 1000);
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            message.className =
+                "message error";
+
+            message.textContent =
+                "Erro ao cadastrar concurso: " +
+                error.message;
+        }
+    }
+);
+
+
+/* ==========================================
+   CARREGAR CONCURSOS
+   ========================================== */
+
+async function loadExams() {
+
+    const examList =
+        document.getElementById("examList");
+
+
+    examList.innerHTML =
+        "<p style='color:#64748b;'>Carregando...</p>";
+
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .from("exams")
+            .select(
+                "id, name, organization, position, board, exam_date, status"
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
+            );
+
+
+    if (error) {
+
+        console.error(error);
+
+        examList.innerHTML =
+            "<p style='color:#991b1b;'>Não foi possível carregar seus concursos.</p>";
+
+        return;
+    }
+
+
+    examList.innerHTML = "";
+
+
+    if (!data || data.length === 0) {
+
+        const empty =
+            document.createElement("p");
+
+        empty.style.color =
+            "#64748b";
+
+        empty.textContent =
+            "Nenhum concurso cadastrado.";
+
+        examList.appendChild(
+            empty
+        );
+
+        return;
+    }
+
+
+    data.forEach(function(exam) {
+
+        const card =
+            document.createElement("div");
+
+        card.className =
+            "card";
+
+
+        const title =
+            document.createElement("div");
+
+        title.className =
+            "card-value";
+
+        title.textContent =
+            exam.name;
+
+
+        const details =
+            document.createElement("div");
+
+        details.style.marginTop =
+            "8px";
+
+        details.style.color =
+            "#64748b";
+
+        details.style.lineHeight =
+            "1.6";
+
+
+        let text = "";
+
+        if (exam.position) {
+            text += exam.position;
+        }
+
+        if (exam.board) {
+
+            if (text) {
+                text += " • ";
+            }
+
+            text += exam.board;
+        }
+
+        if (exam.exam_date) {
+
+            const date =
+                new Date(
+                    exam.exam_date +
+                    "T00:00:00"
+                );
+
+            if (text) {
+                text += " • ";
+            }
+
+            text +=
+                "Prova: " +
+                date.toLocaleDateString(
+                    "pt-BR"
+                );
+        }
+
+
+        details.textContent =
+            text ||
+            "Concurso cadastrado";
+
+
+        card.appendChild(
+            title
+        );
+
+        card.appendChild(
+            details
+        );
+
+
+        examList.appendChild(
+            card
+        );
+    });
+}
 checkSession();    
 </script>
 </body>
