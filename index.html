@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AprovaTrack - Sua preparação inteligente</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f7f9fc;
+            color: #172033;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 20px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo span {
+            color: #2563eb;
+        }
+
+        .login {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        main {
+            min-height: calc(100vh - 80px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #e8f0ff;
+            color: #2563eb;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 52px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        h1 span {
+            color: #2563eb;
+        }
+
+        .description {
+            font-size: 19px;
+            line-height: 1.6;
+            color: #5b6475;
+            margin-bottom: 30px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+
+        .primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .secondary {
+            background: white;
+            color: #2563eb;
+            border: 1px solid #dbe3f0;
+        }
+
+        .dashboard {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+        }
+
+        .dashboard-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            border: 1px solid #edf0f5;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+
+        .card-label {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .card-value {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .progress {
+            height: 8px;
+            background: #edf0f5;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 76%;
+            background: #2563eb;
+            border-radius: 10px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #7a8291;
+            font-size: 14px;
+        }
+
+        @media (max-width: 800px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 40px;
+            }
+
+            .dashboard {
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">Aprova<span>Track</span></div>
+
+    <a href="#" class="login">Entrar</a>
+</header>
+
+<main>
+
+    <div class="container">
+
+        <section>
+
+            <div class="tag">
+                🎯 Estudos inteligentes para concursos
+            </div>
+
+            <h1>
+                Estude melhor.<br>
+                <span>Acompanhe sua evolução.</span>
+            </h1>
+
+            <p class="description">
+                Organize seus estudos, analise seu edital,
+                acompanhe questões, erros e desempenho e
+                receba recomendações inteligentes para sua preparação.
+            </p>
+
+            <div class="buttons">
+
+                <a href="#" class="button primary">
+                    Criar minha conta
+                </a>
+
+                <a href="#" class="button secondary">
+                    Conhecer a plataforma
+                </a>
+
+            </div>
+
+        </section>
+
+
+        <section class="dashboard">
+
+            <div class="dashboard-title">
+                📊 Seu desempenho
+            </div>
+
+            <div class="card">
+
+                <div class="card-label">
+                    Índice de preparação
+                </div>
+
+                <div class="card-value">
+                    76/100
+                </div>
+
+                <div class="progress">
+                    <div class="progress-bar"></div>
+                </div>
+
+            </div>
+
+            <div class="card">
+
+                <div class="card-label">
+                    Questões resolvidas
+                </div>
+
+                <div class="card-value">
+                    1.248
+                </div>
+
+            </div>
+
+            <div class="card">
+
+                <div class="card-label">
+                    Taxa de acertos
+                </div>
+
+                <div class="card-value">
+                    82%
+                </div>
+
+            </div>
+
+            <div class="card">
+
+                <div class="card-label">
+                    Principal ponto de atenção
+                </div>
+
+                <div class="card-value">
+                    Direito Tributário
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+<footer>
+    © 2026 AprovaTrack — Plataforma inteligente de preparação.
+</footer>
+
+</body>
+</html>
