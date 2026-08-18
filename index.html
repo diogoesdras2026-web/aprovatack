@@ -677,219 +677,131 @@
     © 2026 AprovaTrack — Plataforma inteligente de preparação.
 </footer>
 <script>
-const SUPABASE_URL = "const SUPABASE_URL = "https://axxgqacfyrzgpgmqjxbp.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "COLE_AQUI_SUA_CHAVE";
+<script>
+/* ==========================================
+   CONFIGURAÇÃO DO SUPABASE
+   ========================================== */
+
+const SUPABASE_URL = "https://axxgqacfyrzgpgmqjxbp.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
 );
 
-console.log("AprovaTrack JS carregado com sucesso");
+console.log("AprovaTrack conectado ao Supabase");
 
 
-function openSignup() {
-    document.getElementById("signupModal").classList.add("active");
-}
+/* ==========================================
+   ABRIR E FECHAR FORMULÁRIOS
+   ========================================== */
 
-function closeSignup() {
-    document.getElementById("signupModal").classList.remove("active");
-}
+window.openSignup = function () {
+    document
+        .getElementById("signupModal")
+        .classList.add("active");
+};
 
-function openLogin() {
-    document.getElementById("loginModal").classList.add("active");
-}
+window.closeSignup = function () {
+    document
+        .getElementById("signupModal")
+        .classList.remove("active");
+};
 
-function closeLogin() {
-    document.getElementById("loginModal").classList.remove("active");
-}
+window.openLogin = function () {
+    document
+        .getElementById("loginModal")
+        .classList.add("active");
+};
 
-
-function showDashboard(user) {
-    document.getElementById("home").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
-
-    document.getElementById("loginHeaderButton").style.display = "none";
-    document.getElementById("logoutHeaderButton").style.display = "block";
-
-    let name = "Estudante";
-
-    if (user && user.user_metadata && user.user_metadata.name) {
-        name = user.user_metadata.name;
-    } else if (user && user.email) {
-        name = user.email;
-    }
-
-    document.getElementById("welcomeUser").textContent =
-        "Olá, " + name + "! 👋";
-}
+window.closeLogin = function () {
+    document
+        .getElementById("loginModal")
+        .classList.remove("active");
+};
 
 
-function showHome() {
-    document.getElementById("dashboard").style.display = "none";
-    document.getElementById("home").style.display = "flex";
+/* ==========================================
+   CRIAR CONTA
+   ========================================== */
 
-    document.getElementById("loginHeaderButton").style.display = "block";
-    document.getElementById("logoutHeaderButton").style.display = "none";
-}
+const signupForm = document.getElementById("signupForm");
 
-
-document.getElementById("signupForm").addEventListener(
+signupForm.addEventListener(
     "submit",
-    async function(event) {
+    async function (event) {
 
         event.preventDefault();
 
         const name =
-            document.getElementById("signupName").value.trim();
+            document
+                .getElementById("signupName")
+                .value
+                .trim();
 
         const email =
-            document.getElementById("signupEmail").value.trim();
+            document
+                .getElementById("signupEmail")
+                .value
+                .trim();
 
         const password =
-            document.getElementById("signupPassword").value;
+            document
+                .getElementById("signupPassword")
+                .value;
 
         const message =
             document.getElementById("signupMessage");
 
         message.className = "message";
-        message.textContent = "";
+        message.textContent = "Criando sua conta...";
 
-        const { data, error } =
-            await supabaseClient.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    data: {
-                        name: name
-                    },
-                    emailRedirectTo:
-                        "https://aprovatack.vercel.app"
-                }
-            });
+        try {
 
-        if (error) {
-            message.className = "message error";
+            const { data, error } =
+                await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+
+                    options: {
+                        data: {
+                            name: name
+                        },
+
+                        emailRedirectTo:
+                            "https://aprovatack.vercel.app"
+                    }
+                });
+
+            if (error) {
+                throw error;
+            }
+
+            message.className =
+                "message success";
+
             message.textContent =
-                "Erro ao criar conta: " + error.message;
-            return;
-        }
+                "Conta criada! Verifique seu e-mail para confirmar seu cadastro.";
 
-        if (data.session) {
-            message.className = "message success";
+            console.log(
+                "Usuário criado:",
+                data.user
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+            message.className =
+                "message error";
+
             message.textContent =
-                "Conta criada com sucesso!";
-
-            setTimeout(function() {
-                closeSignup();
-                showDashboard(data.user);
-            }, 800);
-
-        } else {
-            message.className = "message success";
-            message.textContent =
-                "Conta criada! Verifique seu e-mail para confirmar o cadastro.";
+                "Erro ao criar conta: " +
+                error.message;
         }
     }
 );
-
-
-document.getElementById("loginForm").addEventListener(
-    "submit",
-    async function(event) {
-
-        event.preventDefault();
-
-        const email =
-            document.getElementById("loginEmail").value.trim();
-
-        const password =
-            document.getElementById("loginPassword").value;
-
-        const message =
-            document.getElementById("loginMessage");
-
-        message.className = "message";
-        message.textContent = "";
-
-        const { data, error } =
-            await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-
-        if (error) {
-            message.className = "message error";
-            message.textContent =
-                "Não foi possível entrar. Verifique e-mail, senha e confirmação do cadastro.";
-            return;
-        }
-
-        message.className = "message success";
-        message.textContent =
-            "Login realizado com sucesso!";
-
-        setTimeout(function() {
-            closeLogin();
-            showDashboard(data.user);
-        }, 500);
-    }
-);
-
-
-async function logout() {
-    await supabaseClient.auth.signOut();
-    showHome();
-}
-
-
-async function checkUser() {
-
-    const { data } =
-        await supabaseClient.auth.getSession();
-
-    if (data.session && data.session.user) {
-        showDashboard(data.session.user);
-    } else {
-        showHome();
-    }
-}
-
-
-supabaseClient.auth.onAuthStateChange(
-    function(event, session) {
-
-        if (session && session.user) {
-            showDashboard(session.user);
-        }
-
-        if (event === "SIGNED_OUT") {
-            showHome();
-        }
-    }
-);
-
-
-checkUser();
-</script>
-
-
-<script>
-window.openSignup = function () {
-    document.getElementById("signupModal").classList.add("active");
-};
-
-window.closeSignup = function () {
-    document.getElementById("signupModal").classList.remove("active");
-};
-
-window.openLogin = function () {
-    document.getElementById("loginModal").classList.add("active");
-};
-
-window.closeLogin = function () {
-    document.getElementById("loginModal").classList.remove("active");
-};
 </script>
 </body>
 </html>
