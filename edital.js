@@ -589,7 +589,47 @@ async function carregarEditais(
             card.appendChild(
                 detail
             );
+const analyzeButton =
+    document.createElement(
+        "button"
+    );
 
+
+analyzeButton.type =
+    "button";
+
+
+analyzeButton.className =
+    "button";
+
+
+analyzeButton.style.marginTop =
+    "12px";
+
+
+analyzeButton.style.background =
+    "#0f766e";
+
+
+analyzeButton.textContent =
+    "🔎 Verificar PDF para IA";
+
+
+analyzeButton.addEventListener(
+    "click",
+    function() {
+
+        verificarPdfParaIa(
+            notice.id,
+            analyzeButton
+        );
+    }
+);
+
+
+card.appendChild(
+    analyzeButton
+);
 
             noticeList.appendChild(
                 card
@@ -598,7 +638,116 @@ async function carregarEditais(
     );
 }
 
+/* ============================================================
+   VERIFICAR PDF PARA IA
+   ============================================================ */
 
+async function verificarPdfParaIa(
+    noticeId,
+    button
+) {
+
+    button.disabled =
+        true;
+
+
+    button.textContent =
+        "Verificando...";
+
+
+    noticeMessage.className =
+        "message info";
+
+
+    noticeMessage.textContent =
+        "Verificando o PDF na área segura...";
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .functions
+                .invoke(
+                    "analisar-edital",
+                    {
+                        body: {
+                            notice_id:
+                                noticeId
+                        }
+                    }
+                );
+
+
+        if (error) {
+
+            throw error;
+        }
+
+
+        if (
+            !data ||
+            data.ok !== true
+        ) {
+
+            throw new Error(
+                data?.error ||
+                "Não foi possível verificar o PDF."
+            );
+        }
+
+
+        console.log(
+            "PDF pronto para IA:",
+            data
+        );
+
+
+        noticeMessage.className =
+            "message success";
+
+
+        noticeMessage.textContent =
+            "✅ PDF localizado com sucesso! " +
+            data.file_name +
+            " — " +
+            data.pdf_size_mb +
+            " MB. Documento pronto para análise pela IA.";
+
+
+        button.textContent =
+            "✅ PDF pronto";
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        noticeMessage.className =
+            "message error";
+
+
+        noticeMessage.textContent =
+            "Erro ao verificar PDF: " +
+            error.message;
+
+
+        button.textContent =
+            "🔎 Tentar novamente";
+
+
+    } finally {
+
+        button.disabled =
+            false;
+    }
+}
 /* ============================================================
    ALTERAR CONCURSO
    ============================================================ */
