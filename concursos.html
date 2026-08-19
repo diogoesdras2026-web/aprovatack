@@ -255,14 +255,16 @@
 </main>
 
 
+
 <script>
-const SUPABASE_URL = "COLE_AQUI_A_MESMA_URL_DO_INDEX";
-const SUPABASE_PUBLISHABLE_KEY = "COLE_AQUI_A_MESMA_CHAVE_DO_INDEX";
+const SUPABASE_URL = "https://axxgqacfyrzgpgmqjxbp.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =  "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
+
 
 const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL"https://axxgqacfyrzgpgmqjxbp.supabase.co";
-    SUPABASE_PUBLISHABLE_KEY "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
-
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+);
 
 
 async function verificarLogin() {
@@ -276,10 +278,10 @@ async function verificarLogin() {
         !data.session.user
     ) {
         window.location.href = "/";
-        return false;
+        return null;
     }
 
-    return true;
+    return data.session.user;
 }
 
 
@@ -288,13 +290,20 @@ async function carregarConcursos() {
     const examList =
         document.getElementById("examList");
 
+    examList.innerHTML =
+        "<p class='empty'>Carregando...</p>";
+
+
     const { data, error } =
         await supabaseClient
             .from("exams")
-            .select("id, name, organization, position, board, exam_date, status")
-            .order("created_at", {
-                ascending: false
-            });
+            .select(
+                "id, name, organization, position, board, exam_date, status, created_at"
+            )
+            .order(
+                "created_at",
+                { ascending: false }
+            );
 
 
     if (error) {
@@ -347,27 +356,39 @@ async function carregarConcursos() {
 
 
         if (exam.organization) {
-            lines.push("Órgão: " + exam.organization);
+            lines.push(
+                "Órgão: " + exam.organization
+            );
         }
+
 
         if (exam.position) {
-            lines.push("Cargo: " + exam.position);
+            lines.push(
+                "Cargo: " + exam.position
+            );
         }
 
+
         if (exam.board) {
-            lines.push("Banca: " + exam.board);
+            lines.push(
+                "Banca: " + exam.board
+            );
         }
+
 
         if (exam.exam_date) {
 
             const date =
                 new Date(
-                    exam.exam_date + "T00:00:00"
+                    exam.exam_date +
+                    "T00:00:00"
                 );
 
             lines.push(
                 "Prova: " +
-                date.toLocaleDateString("pt-BR")
+                date.toLocaleDateString(
+                    "pt-BR"
+                )
             );
         }
 
@@ -376,10 +397,17 @@ async function carregarConcursos() {
             lines.join(" • ");
 
 
-        card.appendChild(title);
-        card.appendChild(details);
+        card.appendChild(
+            title
+        );
 
-        examList.appendChild(card);
+        card.appendChild(
+            details
+        );
+
+        examList.appendChild(
+            card
+        );
     });
 }
 
@@ -392,8 +420,11 @@ document
 
             event.preventDefault();
 
+
             const message =
-                document.getElementById("examMessage");
+                document.getElementById(
+                    "examMessage"
+                );
 
             message.className =
                 "message";
@@ -402,74 +433,70 @@ document
                 "Salvando...";
 
 
-            const {
-                data: userData,
-                error: userError
-            } =
-                await supabaseClient.auth.getUser();
+            const user =
+                await verificarLogin();
 
 
-            if (
-                userError ||
-                !userData.user
-            ) {
-
-                message.className =
-                    "message error";
-
-                message.textContent =
-                    "Sua sessão expirou. Entre novamente.";
-
+            if (!user) {
                 return;
             }
 
 
-            const user =
-                userData.user;
+            const payload = {
 
+                user_id:
+                    user.id,
 
-            const name =
-                document
-                    .getElementById("examName")
-                    .value
-                    .trim();
+                name:
+                    document
+                        .getElementById(
+                            "examName"
+                        )
+                        .value
+                        .trim(),
 
-            const organization =
-                document
-                    .getElementById("examOrganization")
-                    .value
-                    .trim();
+                organization:
+                    document
+                        .getElementById(
+                            "examOrganization"
+                        )
+                        .value
+                        .trim() || null,
 
-            const position =
-                document
-                    .getElementById("examPosition")
-                    .value
-                    .trim();
+                position:
+                    document
+                        .getElementById(
+                            "examPosition"
+                        )
+                        .value
+                        .trim() || null,
 
-            const board =
-                document
-                    .getElementById("examBoard")
-                    .value
-                    .trim();
+                board:
+                    document
+                        .getElementById(
+                            "examBoard"
+                        )
+                        .value
+                        .trim() || null,
 
-            const examDate =
-                document
-                    .getElementById("examDate")
-                    .value;
+                exam_date:
+                    document
+                        .getElementById(
+                            "examDate"
+                        )
+                        .value || null,
+
+                status:
+                    "active"
+            };
 
 
             const { error } =
                 await supabaseClient
                     .from("exams")
-                    .insert({
-                        user_id: user.id,
-                        name: name,
-                        organization: organization || null,
-                        position: position || null,
-                        board: board || null,
-                        exam_date: examDate || null,
-                        status: "active"
-                    });
+                    .insert([
+                        payload
+                    ]);
 
 
             if (error) {
@@ -495,7 +522,9 @@ document
 
 
             document
-                .getElementById("examForm")
+                .getElementById(
+                    "examForm"
+                )
                 .reset();
 
 
@@ -506,10 +535,12 @@ document
 
 async function iniciarPagina() {
 
-    const logged =
+    const user =
         await verificarLogin();
 
-    if (logged) {
+
+    if (user) {
+
         await carregarConcursos();
     }
 }
@@ -517,6 +548,5 @@ async function iniciarPagina() {
 
 iniciarPagina();
 </script>
-
 </body>
 </html>
