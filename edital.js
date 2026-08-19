@@ -617,7 +617,111 @@ examSelect.addEventListener(
 /* ============================================================
    INICIAR PÁGINA
    ============================================================ */
+/* ============================================================
+   TESTAR EDGE FUNCTION / IA
+   ============================================================ */
 
+const testAiButton =
+    document.getElementById(
+        "testAiButton"
+    );
+
+
+testAiButton.addEventListener(
+    "click",
+    async function() {
+
+        noticeMessage.className =
+            "message info";
+
+        noticeMessage.textContent =
+            "Testando conexão com a inteligência artificial...";
+
+
+        testAiButton.disabled =
+            true;
+
+
+        try {
+
+            const user =
+                await verificarLogin();
+
+
+            if (!user) {
+                return;
+            }
+
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient
+                    .functions
+                    .invoke(
+                        "analisar-edital",
+                        {
+                            body: {
+                                notice_id:
+                                    "teste"
+                            }
+                        }
+                    );
+
+
+            if (error) {
+                throw error;
+            }
+
+
+            console.log(
+                "Resposta da IA:",
+                data
+            );
+
+
+            if (
+                data &&
+                data.ok === true &&
+                data.gemini_configured === true
+            ) {
+
+                noticeMessage.className =
+                    "message success";
+
+                noticeMessage.textContent =
+                    "✅ Conexão com a IA funcionando! Edge Function e chave Gemini estão configuradas corretamente.";
+
+            } else {
+
+                throw new Error(
+                    "A função respondeu, mas a configuração da IA não foi confirmada."
+                );
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                error
+            );
+
+
+            noticeMessage.className =
+                "message error";
+
+            noticeMessage.textContent =
+                "Erro ao testar IA: " +
+                error.message;
+
+        } finally {
+
+            testAiButton.disabled =
+                false;
+        }
+    }
+);
 async function iniciarPagina() {
 
     const user =
