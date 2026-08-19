@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Enviar Edital - AprovaTrack</title>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    ></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f7f9fc;
+            color: #172033;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo span {
+            color: #2563eb;
+        }
+
+        .back {
+            text-decoration: none;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .box {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        select,
+        input[type="file"] {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d7dce5;
+            border-radius: 9px;
+            background: white;
+            font-size: 15px;
+        }
+
+        .button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 22px;
+            border-radius: 9px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .message {
+            display: none;
+            margin-top: 18px;
+            padding: 13px;
+            border-radius: 9px;
+            line-height: 1.5;
+        }
+
+        .success {
+            display: block;
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .error {
+            display: block;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .info {
+            display: block;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .notice-card {
+            margin-top: 15px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+        }
+
+        .notice-name {
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        .notice-detail {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .empty {
+            color: #64748b;
+        }
+
+        .tip {
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 9px;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">
+        Aprova<span>Track</span>
+    </div>
+
+    <a
+        class="back"
+        href="/concursos.html"
+    >
+        ← Voltar aos concursos
+    </a>
+
+</header>
+
+
+<main>
+
+    <h1>📄 Enviar edital</h1>
+
+    <p class="subtitle">
+        Escolha seu concurso e envie o edital oficial em PDF.
+        Posteriormente a inteligência artificial analisará
+        automaticamente disciplinas, assuntos, pesos e regras da prova.
+    </p>
+
+
+    <section class="box">
+
+        <h2>Novo edital</h2>
+
+        <div class="tip">
+            Envie somente arquivos PDF.
+            O tamanho máximo permitido é 50 MB.
+        </div>
+
+
+        <form id="noticeForm">
+
+            <div class="form-group">
+
+                <label>
+                    Concurso *
+                </label>
+
+                <select
+                    id="examSelect"
+                    required
+                >
+                    <option value="">
+                        Carregando concursos...
+                    </option>
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Arquivo PDF *
+                </label>
+
+                <input
+                    id="noticeFile"
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                id="uploadButton"
+                class="button"
+                type="submit"
+            >
+                Enviar edital
+            </button>
+
+
+            <div
+                id="noticeMessage"
+                class="message"
+            ></div>
+
+        </form>
+
+    </section>
+
+
+    <section class="box">
+
+        <h2>Editais enviados</h2>
+
+        <div id="noticeList">
+
+            <p class="empty">
+                Escolha um concurso para visualizar seus editais.
+            </p>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script src="/edital.js"></script>
+
+</body>
+</html>
