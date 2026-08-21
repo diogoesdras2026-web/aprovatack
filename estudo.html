@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Registrar Estudo - AprovaTrack</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f7f9fc;
+            color: #172033;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo span {
+            color: #2563eb;
+        }
+
+        .back {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .box {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        select,
+        input,
+        textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d7dce5;
+            border-radius: 9px;
+            font-size: 15px;
+            background: white;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #bfdbfe;
+            border-color: #2563eb;
+        }
+
+        .button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 22px;
+            border-radius: 9px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            opacity: 0.92;
+        }
+
+        .message {
+            display: none;
+            margin-top: 18px;
+            padding: 13px;
+            border-radius: 9px;
+            line-height: 1.5;
+        }
+
+        .message.success {
+            display: block;
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .message.error {
+            display: block;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .info-card {
+            background: #eff6ff;
+            border-radius: 12px;
+            padding: 17px;
+            color: #1e40af;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .section-title {
+            margin-bottom: 20px;
+        }
+
+        .calculated {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        @media (max-width: 750px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">
+        Aprova<span>Track</span>
+    </div>
+
+    <a
+        class="back"
+        href="/"
+    >
+        ← Voltar ao Dashboard
+    </a>
+
+</header>
+
+
+<main>
+
+    <h1>📚 Registrar estudo</h1>
+
+    <p class="subtitle">
+        Registre o tempo estudado e seu desempenho em questões.
+        Essas informações serão utilizadas nos relatórios e,
+        posteriormente, pelo plano adaptativo do AprovaTrack.
+    </p>
+
+
+    <div class="info-card">
+        Primeiro escolha o concurso. As disciplinas e assuntos
+        serão carregados automaticamente a partir do edital que
+        você confirmou.
+    </div>
+
+
+    <section class="box">
+
+        <div class="form-group">
+
+            <label>
+                Concurso *
+            </label>
+
+            <select
+                id="examSelect"
+                required
+            >
+                <option value="">
+                    Carregando concursos...
+                </option>
+            </select>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         REGISTRO DE ESTUDO
+         ====================================================== -->
+
+    <section class="box">
+
+        <h2 class="section-title">
+            ⏱️ Sessão de estudo
+        </h2>
+
+        <form id="studyForm">
+
+            <div class="grid">
+
+                <div class="form-group">
+
+                    <label>
+                        Disciplina *
+                    </label>
+
+                    <select
+                        id="subjectSelect"
+                        required
+                    >
+                        <option value="">
+                            Selecione um concurso
+                        </option>
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Assunto
+                    </label>
+
+                    <select id="topicSelect">
+
+                        <option value="">
+                            Selecione primeiro uma disciplina
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Tipo de atividade *
+                    </label>
+
+                    <select
+                        id="activityType"
+                        required
+                    >
+
+                        <option value="teoria">
+                            📖 Teoria
+                        </option>
+
+                        <option value="questoes">
+                            📝 Questões
+                        </option>
+
+                        <option value="revisao">
+                            🔄 Revisão
+                        </option>
+
+                        <option value="lei_seca">
+                            ⚖️ Lei seca
+                        </option>
+
+                        <option value="videoaula">
+                            🎥 Videoaula
+                        </option>
+
+                        <option value="resumo">
+                            ✍️ Resumo
+                        </option>
+
+                        <option value="simulado">
+                            🎯 Simulado
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Tempo estudado em minutos *
+                    </label>
+
+                    <input
+                        id="durationMinutes"
+                        type="number"
+                        min="1"
+                        required
+                        placeholder="Ex.: 60"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Observações
+                </label>
+
+                <textarea
+                    id="studyNotes"
+                    placeholder="Ex.: Estudei obrigação tributária e preciso revisar lançamento."
+                ></textarea>
+
+            </div>
+
+
+            <button
+                class="button"
+                type="submit"
+            >
+                💾 Salvar sessão
+            </button>
+
+
+            <div
+                id="studyMessage"
+                class="message"
+            ></div>
+
+        </form>
+
+    </section>
+
+
+    <!-- ======================================================
+         QUESTÕES
+         ====================================================== -->
+
+    <section class="box">
+
+        <h2 class="section-title">
+            📝 Registrar questões
+        </h2>
+
+        <form id="questionForm">
+
+            <div class="grid">
+
+                <div class="form-group">
+
+                    <label>
+                        Disciplina *
+                    </label>
+
+                    <select
+                        id="questionSubjectSelect"
+                        required
+                    >
+
+                        <option value="">
+                            Selecione um concurso
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Assunto
+                    </label>
+
+                    <select id="questionTopicSelect">
+
+                        <option value="">
+                            Selecione primeiro uma disciplina
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Questões resolvidas *
+                    </label>
+
+                    <input
+                        id="totalQuestions"
+                        type="number"
+                        min="1"
+                        required
+                        placeholder="Ex.: 30"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Acertos *
+                    </label>
+
+                    <input
+                        id="correctAnswers"
+                        type="number"
+                        min="0"
+                        required
+                        placeholder="Ex.: 24"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Erros
+                    </label>
+
+                    <input
+                        id="wrongAnswers"
+                        class="calculated"
+                        type="number"
+                        readonly
+                        placeholder="Calculado automaticamente"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Banca
+                    </label>
+
+                    <input
+                        id="questionBoard"
+                        type="text"
+                        placeholder="Ex.: IDECAN"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Fonte das questões
+                    </label>
+
+                    <input
+                        id="questionSource"
+                        type="text"
+                        placeholder="Ex.: QConcursos, PDF, simulado"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Dificuldade
+                    </label>
+
+                    <select id="questionDifficulty">
+
+                        <option value="">
+                            Não informar
+                        </option>
+
+                        <option value="facil">
+                            Fácil
+                        </option>
+
+                        <option value="media">
+                            Média
+                        </option>
+
+                        <option value="dificil">
+                            Difícil
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <button
+                class="button"
+                type="submit"
+            >
+                ✅ Salvar questões
+            </button>
+
+
+            <div
+                id="questionMessage"
+                class="message"
+            ></div>
+
+        </form>
+
+    </section>
+
+</main>
+
+
+<script src="/estudo.js"></script>
+
+</body>
+
+</html>
