@@ -1,580 +1,1901 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+/* ============================================================
+   APROVATRACK
+   MODO PARETO - ANÁLISE DE PROVAS POR URL
+   ============================================================ */
 
-<head>
-    <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+/* ============================================================
+   SUPABASE
+   ============================================================ */
 
-    <title>Modo Pareto - AprovaTrack</title>
+const SUPABASE_URL =
+     "https://axxgqacfyrzgpgmqjxbp.supabase.co";
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
 
-    <style>
-        * {
-            box-sizing: border-box;
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
+
+/* ============================================================
+   ELEMENTOS
+   ============================================================ */
+
+const examSelect =
+    document.getElementById(
+        "examSelect"
+    );
+
+const sourceUrl =
+    document.getElementById(
+        "sourceUrl"
+    );
+
+const analyzeUrlButton =
+    document.getElementById(
+        "analyzeUrlButton"
+    );
+
+const message =
+    document.getElementById(
+        "message"
+    );
+
+const summarySection =
+    document.getElementById(
+        "summarySection"
+    );
+
+const foundCount =
+    document.getElementById(
+        "foundCount"
+    );
+
+const highCount =
+    document.getElementById(
+        "highCount"
+    );
+
+const officialCount =
+    document.getElementById(
+        "officialCount"
+    );
+
+const approvedCount =
+    document.getElementById(
+        "approvedCount"
+    );
+
+const candidateList =
+    document.getElementById(
+        "candidateList"
+    );
+
+
+let currentUser =
+    null;
+
+let currentExamId =
+    null;
+
+let currentCandidates =
+    [];
+
+
+/* ============================================================
+   MENSAGENS
+   ============================================================ */
+
+function showMessage(
+    type,
+    text
+) {
+
+    message.className =
+        "message " +
+        type;
+
+    message.textContent =
+        text;
+}
+
+
+function clearMessage() {
+
+    message.className =
+        "message";
+
+    message.textContent =
+        "";
+}
+
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+
+async function verificarLogin() {
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .auth
+            .getSession();
+
+
+    if (
+        error ||
+        !data.session ||
+        !data.session.user
+    ) {
+
+        window.location.href =
+            "/";
+
+        return false;
+    }
+
+
+    currentUser =
+        data.session.user;
+
+    return true;
+}
+
+
+/* ============================================================
+   VALIDAR URL
+   ============================================================ */
+
+function urlValida(
+    value
+) {
+
+    try {
+
+        const url =
+            new URL(
+                value
+            );
+
+
+        return (
+            url.protocol ===
+            "http:"
+
+            ||
+
+            url.protocol ===
+            "https:"
+        );
+
+    } catch {
+
+        return false;
+    }
+}
+
+
+/* ============================================================
+   ATUALIZAR BOTÃO
+   ============================================================ */
+
+function atualizarBotaoAnalise() {
+
+    const temConcurso =
+        Boolean(
+            examSelect.value
+        );
+
+
+    const temUrlValida =
+        urlValida(
+            sourceUrl.value.trim()
+        );
+
+
+    analyzeUrlButton.disabled =
+        !(
+            temConcurso &&
+            temUrlValida
+        );
+}
+
+
+/* ============================================================
+   CARREGAR CONCURSOS
+   ============================================================ */
+
+async function carregarConcursos() {
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+
+            .from("exams")
+
+            .select(
+                `
+                id,
+                name,
+                position
+                `
+            )
+
+            .order(
+                "created_at",
+                {
+                    ascending:
+                        false
+                }
+            );
+
+
+    examSelect.innerHTML =
+        '<option value="">Selecione um concurso</option>';
+
+
+    if (error) {
+
+        console.error(
+            "Erro ao carregar concursos:",
+            error
+        );
+
+
+        showMessage(
+            "error",
+            "Não foi possível carregar seus concursos."
+        );
+
+        return;
+    }
+
+
+    (data || []).forEach(
+        function(exam) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                exam.id;
+
+
+            option.textContent =
+
+                exam.position
+
+                    ? exam.name +
+                      " — " +
+                      exam.position
+
+                    : exam.name;
+
+
+            examSelect.appendChild(
+                option
+            );
         }
+    );
+}
 
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f7f9fc;
-            color: #172033;
+
+/* ============================================================
+   CLASSIFICAÇÃO DO SCORE
+   ============================================================ */
+
+function getScoreClass(
+    score
+) {
+
+    const value =
+        Number(
+            score ||
+            0
+        );
+
+
+    if (
+        value >=
+        85
+    ) {
+
+        return "score-high";
+    }
+
+
+    if (
+        value >=
+        70
+    ) {
+
+        return "score-medium";
+    }
+
+
+    return "score-low";
+}
+
+
+/* ============================================================
+   TEXTO DO SCORE
+   ============================================================ */
+
+function getScoreLabel(
+    score
+) {
+
+    const value =
+        Number(
+            score ||
+            0
+        );
+
+
+    if (
+        value >=
+        85
+    ) {
+
+        return "🔥 Muito semelhante";
+    }
+
+
+    if (
+        value >=
+        70
+    ) {
+
+        return "🟢 Semelhante";
+    }
+
+
+    if (
+        value >=
+        55
+    ) {
+
+        return "🟡 Complementar";
+    }
+
+
+    return "⚪ Baixa similaridade";
+}
+
+
+/* ============================================================
+   TAG
+   ============================================================ */
+
+function criarTag(
+    texto,
+    classeExtra = ""
+) {
+
+    const tag =
+        document.createElement(
+            "span"
+        );
+
+
+    tag.className =
+        "tag " +
+        classeExtra;
+
+
+    tag.textContent =
+        texto;
+
+
+    return tag;
+}
+
+
+/* ============================================================
+   RAZÕES DA SIMILARIDADE
+   ============================================================ */
+
+function criarRazoes(
+    candidate
+) {
+
+    const reasons =
+        Array.isArray(
+            candidate.similarity_reasons
+        )
+
+            ? candidate.similarity_reasons
+
+            : [];
+
+
+    if (
+        reasons.length ===
+        0
+    ) {
+
+        return null;
+    }
+
+
+    const container =
+        document.createElement(
+            "div"
+        );
+
+
+    container.style.marginTop =
+        "15px";
+
+
+    container.style.fontSize =
+        "13px";
+
+
+    container.style.color =
+        "#64748b";
+
+
+    const title =
+        document.createElement(
+            "strong"
+        );
+
+
+    title.textContent =
+        "Critérios de similaridade:";
+
+
+    container.appendChild(
+        title
+    );
+
+
+    reasons.forEach(
+        function(reason) {
+
+            const line =
+                document.createElement(
+                    "div"
+                );
+
+
+            line.style.marginTop =
+                "5px";
+
+
+            line.textContent =
+
+                "+" +
+
+                Number(
+                    reason?.points ||
+                    0
+                )
+
+                +
+
+                " — "
+
+                +
+
+                (
+                    reason?.label ||
+                    "Critério"
+                );
+
+
+            container.appendChild(
+                line
+            );
         }
+    );
 
-        header {
-            background: white;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 18px 7%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
 
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-        }
+    return container;
+}
 
-        .logo span {
-            color: #2563eb;
-        }
 
-        .back {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: bold;
-        }
+/* ============================================================
+   CONTEÚDO IDENTIFICADO NA PROVA
+   ============================================================ */
 
-        main {
-            max-width: 1180px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
+function criarResumoConteudo(
+    candidate
+) {
 
-        h1 {
-            margin-bottom: 8px;
-        }
+    const subjects =
 
-        .subtitle {
-            color: #64748b;
-            line-height: 1.6;
-            margin-bottom: 28px;
-        }
+        Array.isArray(
+            candidate
+                ?.source_metadata
+                ?.subjects
+        )
 
-        .box {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 25px;
-        }
+            ? candidate
+                .source_metadata
+                .subjects
 
-        .intro {
-            background: #fff7ed;
-            border: 1px solid #fed7aa;
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
+            : [];
 
-        .intro strong {
-            color: #c2410c;
-        }
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
+    if (
+        subjects.length ===
+        0
+    ) {
 
-        select {
-            width: 100%;
-            padding: 13px;
-            border: 1px solid #d7dce5;
-            border-radius: 9px;
-            background: white;
-            font-size: 15px;
-        }
+        return null;
+    }
 
-        .button {
-            margin-top: 18px;
-            border: none;
-            border-radius: 9px;
-            padding: 14px 20px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-        }
 
-        .primary {
-            background: #ea580c;
-            color: white;
-        }
+    const container =
+        document.createElement(
+            "div"
+        );
 
-        .primary:hover {
-            opacity: 0.92;
-        }
 
-        .primary:disabled {
-            opacity: 0.6;
-            cursor: default;
-        }
+    container.style.marginTop =
+        "18px";
 
-        .message {
-            display: none;
-            margin-top: 18px;
-            padding: 14px;
-            border-radius: 9px;
-            line-height: 1.6;
-        }
 
-        .message.info {
-            display: block;
-            background: #eff6ff;
-            color: #1e40af;
-        }
+    container.style.padding =
+        "15px";
 
-        .message.success {
-            display: block;
-            background: #ecfdf5;
-            color: #166534;
-        }
 
-        .message.error {
-            display: block;
-            background: #fef2f2;
-            color: #991b1b;
-        }
+    container.style.background =
+        "#f8fafc";
 
-        .summary {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-        }
 
-        .summary-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 18px;
-        }
+    container.style.borderRadius =
+        "10px";
 
-        .summary-label {
-            color: #64748b;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
 
-        .summary-value {
-            font-size: 25px;
-            font-weight: bold;
-        }
+    const title =
+        document.createElement(
+            "strong"
+        );
 
-        .candidate {
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 16px;
-        }
 
-        .candidate-top {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            align-items: flex-start;
-        }
+    title.textContent =
+        "📊 Conteúdo identificado na prova";
 
-        .candidate-title {
-            font-size: 17px;
-            font-weight: bold;
-            line-height: 1.4;
-        }
 
-        .candidate-meta {
-            margin-top: 8px;
-            color: #64748b;
-            line-height: 1.6;
-        }
+    container.appendChild(
+        title
+    );
 
-        .score {
-            min-width: 92px;
-            text-align: center;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-        }
 
-        .score-high {
-            background: #ecfdf5;
-            color: #166534;
-        }
+    subjects.forEach(
+        function(subject) {
 
-        .score-medium {
-            background: #fff7ed;
-            color: #c2410c;
-        }
+            const subjectBox =
+                document.createElement(
+                    "div"
+                );
 
-        .score-low {
-            background: #f1f5f9;
-            color: #475569;
-        }
 
-        .tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 13px;
-        }
+            subjectBox.style.marginTop =
+                "12px";
 
-        .tag {
-            background: #f1f5f9;
-            border-radius: 20px;
-            padding: 6px 10px;
-            font-size: 12px;
-            color: #475569;
-        }
 
-        .official {
-            background: #ecfdf5;
-            color: #166534;
-        }
+            const subjectTitle =
+                document.createElement(
+                    "div"
+                );
 
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 17px;
-        }
 
-        .action-button {
-            border: none;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+            subjectTitle.style.fontWeight =
+                "bold";
 
-        .approve {
-            background: #2563eb;
-            color: white;
-        }
 
-        .reject {
-            background: #f1f5f9;
-            color: #475569;
-        }
+            const quantidade =
+                subject.question_count;
 
-        .link {
-            display: inline-block;
-            margin-top: 14px;
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: bold;
-        }
 
-        .empty {
-            color: #64748b;
-            text-align: center;
-            padding: 35px 10px;
-        }
+            subjectTitle.textContent =
 
-        .hidden {
-            display: none;
-        }
+                subject.name
 
-        @media (max-width: 850px) {
-            .summary {
-                grid-template-columns: repeat(2, 1fr);
+                +
+
+                (
+                    quantidade !== null &&
+                    quantidade !== undefined
+
+                        ? " — " +
+                          quantidade +
+                          " questão(ões)"
+
+                        : ""
+                );
+
+
+            subjectBox.appendChild(
+                subjectTitle
+            );
+
+
+            const topics =
+
+                Array.isArray(
+                    subject.topics
+                )
+
+                    ? subject.topics
+
+                    : [];
+
+
+            topics
+                .slice(
+                    0,
+                    8
+                )
+                .forEach(
+                    function(topic) {
+
+                        const line =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        line.style.marginTop =
+                            "5px";
+
+
+                        line.style.color =
+                            "#64748b";
+
+
+                        line.textContent =
+
+                            "• " +
+
+                            topic.name +
+
+                            " — " +
+
+                            Number(
+                                topic.question_count ||
+                                0
+                            )
+
+                            +
+
+                            " questão(ões)";
+
+
+                        subjectBox.appendChild(
+                            line
+                        );
+                    }
+                );
+
+
+            if (
+                topics.length >
+                8
+            ) {
+
+                const more =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                more.style.marginTop =
+                    "5px";
+
+
+                more.style.color =
+                    "#64748b";
+
+
+                more.textContent =
+
+                    "+ " +
+
+                    (
+                        topics.length -
+                        8
+                    )
+
+                    +
+
+                    " assunto(s) identificado(s)";
+
+
+                subjectBox.appendChild(
+                    more
+                );
             }
 
-            .candidate-top {
-                display: block;
-            }
 
-            .score {
-                margin-top: 15px;
-                width: max-content;
-            }
+            container.appendChild(
+                subjectBox
+            );
         }
+    );
 
-        @media (max-width: 550px) {
-            .summary {
-                grid-template-columns: 1fr;
+
+    return container;
+}
+
+
+/* ============================================================
+   CRIAR CARD DA PROVA
+   ============================================================ */
+
+function criarCandidateCard(
+    candidate
+) {
+
+    const container =
+        document.createElement(
+            "div"
+        );
+
+
+    container.className =
+        "candidate";
+
+
+    /* CABEÇALHO */
+
+    const top =
+        document.createElement(
+            "div"
+        );
+
+
+    top.className =
+        "candidate-top";
+
+
+    const left =
+        document.createElement(
+            "div"
+        );
+
+
+    const title =
+        document.createElement(
+            "div"
+        );
+
+
+    title.className =
+        "candidate-title";
+
+
+    title.textContent =
+        candidate.title ||
+        "Prova anterior";
+
+
+    left.appendChild(
+        title
+    );
+
+
+    const meta =
+        document.createElement(
+            "div"
+        );
+
+
+    meta.className =
+        "candidate-meta";
+
+
+    const parts =
+        [];
+
+
+    if (
+        candidate.board
+    ) {
+
+        parts.push(
+            candidate.board
+        );
+    }
+
+
+    if (
+        candidate.position
+    ) {
+
+        parts.push(
+            candidate.position
+        );
+    }
+
+
+    if (
+        candidate.organization
+    ) {
+
+        parts.push(
+            candidate.organization
+        );
+    }
+
+
+    if (
+        candidate.exam_year
+    ) {
+
+        parts.push(
+            String(
+                candidate.exam_year
+            )
+        );
+    }
+
+
+    meta.textContent =
+        parts.join(
+            " • "
+        );
+
+
+    left.appendChild(
+        meta
+    );
+
+
+    top.appendChild(
+        left
+    );
+
+
+    /* SCORE */
+
+    const score =
+        document.createElement(
+            "div"
+        );
+
+
+    score.className =
+
+        "score " +
+
+        getScoreClass(
+            candidate.similarity_score
+        );
+
+
+    score.textContent =
+
+        Math.round(
+            Number(
+                candidate.similarity_score ||
+                0
+            )
+        )
+
+        +
+
+        "/100";
+
+
+    top.appendChild(
+        score
+    );
+
+
+    container.appendChild(
+        top
+    );
+
+
+    /* CLASSIFICAÇÃO */
+
+    const scoreLabel =
+        document.createElement(
+            "div"
+        );
+
+
+    scoreLabel.style.marginTop =
+        "10px";
+
+
+    scoreLabel.style.fontWeight =
+        "bold";
+
+
+    scoreLabel.textContent =
+        getScoreLabel(
+            candidate.similarity_score
+        );
+
+
+    container.appendChild(
+        scoreLabel
+    );
+
+
+    /* TAGS */
+
+    const tags =
+        document.createElement(
+            "div"
+        );
+
+
+    tags.className =
+        "tags";
+
+
+    if (
+        candidate.is_official
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "✅ Fonte oficial",
+                "official"
+            )
+        );
+    }
+
+
+    if (
+        candidate.has_exam
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "📄 Prova identificada"
+            )
+        );
+    }
+
+
+    if (
+        candidate.has_answer_key
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "✅ Gabarito identificado"
+            )
+        );
+    }
+
+
+    if (
+        candidate.source_domain
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                candidate.source_domain
+            )
+        );
+    }
+
+
+    if (
+        candidate.status ===
+        "approved"
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "👍 Aprovada",
+                "official"
+            )
+        );
+    }
+
+
+    if (
+        candidate.status ===
+        "rejected"
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "❌ Descartada"
+            )
+        );
+    }
+
+
+    container.appendChild(
+        tags
+    );
+
+
+    /* RAZÕES */
+
+    const reasons =
+        criarRazoes(
+            candidate
+        );
+
+
+    if (
+        reasons
+    ) {
+
+        container.appendChild(
+            reasons
+        );
+    }
+
+
+    /* CONTEÚDOS */
+
+    const contentSummary =
+        criarResumoConteudo(
+            candidate
+        );
+
+
+    if (
+        contentSummary
+    ) {
+
+        container.appendChild(
+            contentSummary
+        );
+    }
+
+
+    /* LINK */
+
+    if (
+        candidate.source_url
+    ) {
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+
+        link.className =
+            "link";
+
+
+        link.href =
+            candidate.source_url;
+
+
+        link.target =
+            "_blank";
+
+
+        link.rel =
+            "noopener noreferrer";
+
+
+        link.textContent =
+            "🔗 Abrir fonte original";
+
+
+        container.appendChild(
+            link
+        );
+    }
+
+
+    /* AÇÕES */
+
+    const actions =
+        document.createElement(
+            "div"
+        );
+
+
+    actions.className =
+        "actions";
+
+
+    const approveButton =
+        document.createElement(
+            "button"
+        );
+
+
+    approveButton.type =
+        "button";
+
+
+    approveButton.className =
+        "action-button approve";
+
+
+    approveButton.dataset.action =
+        "approve";
+
+
+    approveButton.dataset.id =
+        candidate.id;
+
+
+    approveButton.textContent =
+
+        candidate.status ===
+        "approved"
+
+            ? "✅ Aprovada"
+
+            : "✅ Aprovar para o Pareto";
+
+
+    if (
+        candidate.status ===
+        "approved"
+    ) {
+
+        approveButton.disabled =
+            true;
+    }
+
+
+    const rejectButton =
+        document.createElement(
+            "button"
+        );
+
+
+    rejectButton.type =
+        "button";
+
+
+    rejectButton.className =
+        "action-button reject";
+
+
+    rejectButton.dataset.action =
+        "reject";
+
+
+    rejectButton.dataset.id =
+        candidate.id;
+
+
+    rejectButton.textContent =
+
+        candidate.status ===
+        "rejected"
+
+            ? "❌ Descartada"
+
+            : "❌ Descartar";
+
+
+    if (
+        candidate.status ===
+        "rejected"
+    ) {
+
+        rejectButton.disabled =
+            true;
+    }
+
+
+    actions.appendChild(
+        approveButton
+    );
+
+
+    actions.appendChild(
+        rejectButton
+    );
+
+
+    container.appendChild(
+        actions
+    );
+
+
+    return container;
+}
+
+
+/* ============================================================
+   RESUMO
+   ============================================================ */
+
+function atualizarResumo() {
+
+    const total =
+        currentCandidates.length;
+
+
+    const high =
+        currentCandidates.filter(
+            function(candidate) {
+
+                return (
+                    Number(
+                        candidate.similarity_score ||
+                        0
+                    ) >=
+                    85
+                );
             }
-        }
-    </style>
-</head>
+        ).length;
 
-<body>
 
-<header>
+    const official =
+        currentCandidates.filter(
+            function(candidate) {
 
-    <div class="logo">
-        Aprova<span>Track</span>
-    </div>
+                return (
+                    candidate.is_official ===
+                    true
+                );
+            }
+        ).length;
 
-    <a
-        href="/"
-        class="back"
-    >
-        ← Dashboard
-    </a>
 
-</header>
+    const approved =
+        currentCandidates.filter(
+            function(candidate) {
 
+                return (
+                    candidate.status ===
+                    "approved"
+                );
+            }
+        ).length;
 
-<main>
 
-    <h1>
-        🔥 Modo Pareto
-    </h1>
+    foundCount.textContent =
+        String(
+            total
+        );
 
-    <p class="subtitle">
-        Descubra quais assuntos apresentam maior incidência
-        em provas semelhantes ao seu concurso.
-    </p>
 
+    highCount.textContent =
+        String(
+            high
+        );
 
-    <div class="intro">
 
-        <strong>
-            Como funciona?
-        </strong>
+    officialCount.textContent =
+        String(
+            official
+        );
 
-        O AprovaTrack procura provas anteriores semelhantes,
-        considerando banca, cargo, área e recência.
 
-        Antes de qualquer prova entrar na estatística,
-        você poderá conferir e aprovar a fonte.
+    approvedCount.textContent =
+        String(
+            approved
+        );
 
-    </div>
 
+    if (
+        total >
+        0
+    ) {
 
-    <!-- ======================================================
-         SELEÇÃO DO CONCURSO
-         ====================================================== -->
+        summarySection.classList.remove(
+            "hidden"
+        );
 
-    <section class="box">
+    } else {
 
-        <label for="examSelect">
-            Concurso
-        </label>
+        summarySection.classList.add(
+            "hidden"
+        );
+    }
+}
 
-        <select id="examSelect">
 
-            <option value="">
-                Carregando concursos...
-            </option>
+/* ============================================================
+   RENDERIZAR PROVAS
+   ============================================================ */
 
-        </select>
+function renderizarCandidatos() {
 
+    candidateList.innerHTML =
+        "";
 
-        <div
-    style="
-        margin-top: 25px;
-        padding-top: 22px;
-        border-top: 1px solid #e5e7eb;
-    "
->
 
-    <h3 style="margin-top:0;">
-        🔗 Adicionar prova anterior
-    </h3>
+    if (
+        currentCandidates.length ===
+        0
+    ) {
 
-    <p
-        style="
-            color:#64748b;
-            line-height:1.6;
-        "
-    >
-        Cole abaixo o endereço público de uma prova anterior
-        ou de uma página que contenha a prova.
-        O AprovaTrack analisará a fonte e verificará
-        a semelhança com seu concurso.
-    </p>
-
-
-    <label for="sourceUrl">
-        URL da prova *
-    </label>
-
-    <input
-        id="sourceUrl"
-        type="url"
-        placeholder="https://site-da-banca.com/prova.pdf"
-        style="
-            width:100%;
-            padding:13px;
-            border:1px solid #d7dce5;
-            border-radius:9px;
-            font-size:15px;
-        "
-    >
-
-
-    <button
-        id="analyzeUrlButton"
-        class="button primary"
-        type="button"
-        disabled
-    >
-        🤖 Analisar prova pela URL
-    </button>
-
-</div>
-
-
-<div
-    id="message"
-    class="message"
-></div>
-            id="message"
-            class="message"
-        ></div>
-
-    </section>
-
-
-    <!-- ======================================================
-         RESUMO
-         ====================================================== -->
-
-    <section
-        id="summarySection"
-        class="summary hidden"
-    >
-
-        <div class="summary-card">
-
-            <div class="summary-label">
-                Fontes encontradas
-            </div>
-
-            <div
-                id="foundCount"
-                class="summary-value"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="summary-card">
-
-            <div class="summary-label">
-                Muito semelhantes
-            </div>
-
-            <div
-                id="highCount"
-                class="summary-value"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="summary-card">
-
-            <div class="summary-label">
-                Fontes oficiais
-            </div>
-
-            <div
-                id="officialCount"
-                class="summary-value"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="summary-card">
-
-            <div class="summary-label">
-                Aprovadas
-            </div>
-
-            <div
-                id="approvedCount"
-                class="summary-value"
-            >
-                0
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- ======================================================
-         RESULTADOS
-         ====================================================== -->
-
-    <section class="box">
-
-        <h2>
-            📚 Provas encontradas
-        </h2>
-
-        <p style="color:#64748b; line-height:1.6;">
-            Priorize fontes oficiais e provas com maior
-            índice de similaridade.
-        </p>
-
-
-        <div id="candidateList">
-
+        candidateList.innerHTML =
+            `
             <div class="empty">
-                Selecione um concurso e clique em
-                “Pesquisar provas semelhantes”.
+                Nenhuma prova foi analisada para este concurso.
+                <br><br>
+                Cole acima a URL pública de uma prova anterior.
             </div>
-
-        </div>
-
-    </section>
+            `;
 
 
-    <!-- ======================================================
-         FUTURO NÚCLEO PARETO
-         ====================================================== -->
+        atualizarResumo();
 
-    <section class="box">
+        return;
+    }
 
-        <h2>
-            📊 Núcleo Pareto
-        </h2>
 
+    currentCandidates.sort(
+        function(
+            a,
+            b
+        ) {
+
+            return (
+
+                Number(
+                    b.similarity_score ||
+                    0
+                )
+
+                -
+
+                Number(
+                    a.similarity_score ||
+                    0
+                )
+            );
+        }
+    );
+
+
+    currentCandidates.forEach(
+        function(candidate) {
+
+            candidateList.appendChild(
+                criarCandidateCard(
+                    candidate
+                )
+            );
+        }
+    );
+
+
+    atualizarResumo();
+}
+
+
+/* ============================================================
+   CARREGAR PROVAS SALVAS
+   ============================================================ */
+
+async function carregarCandidatos(
+    examId
+) {
+
+    currentCandidates =
+        [];
+
+
+    if (!examId) {
+
+        renderizarCandidatos();
+
+        return;
+    }
+
+
+    candidateList.innerHTML =
+        `
         <div class="empty">
-
-            Depois que as provas forem aprovadas e analisadas,
-            o ranking de assuntos aparecerá aqui.
-
-            <br><br>
-
-            🔥 Classe A — maior incidência<br>
-            🟡 Classe B — incidência intermediária<br>
-            ⚪ Classe C — menor incidência
-
+            Carregando provas já analisadas...
         </div>
-
-    </section>
-
-</main>
+        `;
 
 
-<script src="/pareto.js"></script>
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
 
-</body>
+            .from(
+                "exam_research_candidates"
+            )
 
-</html>
+            .select(
+                `
+                id,
+                exam_id,
+                title,
+                source_url,
+                source_domain,
+                source_type,
+                board,
+                organization,
+                position,
+                position_family,
+                area,
+                exam_year,
+                exam_date,
+                similarity_score,
+                similarity_reasons,
+                is_official,
+                has_exam,
+                has_answer_key,
+                source_metadata,
+                status,
+                discovered_at
+                `
+            )
+
+            .eq(
+                "exam_id",
+                examId
+            )
+
+            .order(
+                "similarity_score",
+                {
+                    ascending:
+                        false
+                }
+            );
+
+
+    if (error) {
+
+        console.error(
+            "Erro ao carregar provas:",
+            error
+        );
+
+
+        showMessage(
+            "error",
+            "Não foi possível carregar as provas analisadas."
+        );
+
+
+        return;
+    }
+
+
+    currentCandidates =
+        data ||
+        [];
+
+
+    renderizarCandidatos();
+}
+
+
+/* ============================================================
+   ANALISAR URL
+   ============================================================ */
+
+async function analisarUrl() {
+
+    const examId =
+        examSelect.value;
+
+
+    const url =
+        sourceUrl
+            .value
+            .trim();
+
+
+    if (!examId) {
+
+        showMessage(
+            "error",
+            "Selecione um concurso."
+        );
+
+        return;
+    }
+
+
+    if (
+        !urlValida(
+            url
+        )
+    ) {
+
+        showMessage(
+            "error",
+            "Informe uma URL pública válida."
+        );
+
+        return;
+    }
+
+
+    analyzeUrlButton.disabled =
+        true;
+
+
+    analyzeUrlButton.textContent =
+        "🤖 Analisando prova...";
+
+
+    showMessage(
+        "info",
+        "A IA está acessando a fonte e analisando a prova. Aguarde alguns segundos."
+    );
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .functions
+                .invoke(
+                    "analisar-prova-url",
+                    {
+                        body: {
+
+                            exam_id:
+                                examId,
+
+                            source_url:
+                                url
+                        }
+                    }
+                );
+
+
+        if (error) {
+
+            console.error(
+                "Erro na Edge Function:",
+                error
+            );
+
+
+            throw new Error(
+                error.message ||
+                "Falha ao chamar a função."
+            );
+        }
+
+
+        if (
+            !data ||
+            data.ok !==
+            true
+        ) {
+
+            console.error(
+                "Resposta da análise:",
+                data
+            );
+
+
+            throw new Error(
+                data?.error ||
+                "A análise não pôde ser concluída."
+            );
+        }
+
+
+        showMessage(
+            "success",
+
+            "✅ URL analisada! " +
+
+            Number(
+                data.subjects_found ||
+                0
+            )
+
+            +
+
+            " disciplina(s) e " +
+
+            Number(
+                data.topics_found ||
+                0
+            )
+
+            +
+
+            " assunto(s) identificados."
+        );
+
+
+        sourceUrl.value =
+            "";
+
+
+        await carregarCandidatos(
+            examId
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Erro ao analisar URL:",
+            error
+        );
+
+
+        showMessage(
+            "error",
+
+            "Erro ao analisar a prova: " +
+
+            (
+                error?.message ||
+                "erro desconhecido"
+            )
+        );
+
+
+    } finally {
+
+        analyzeUrlButton.textContent =
+            "🤖 Analisar prova pela URL";
+
+
+        atualizarBotaoAnalise();
+    }
+}
+
+
+/* ============================================================
+   APROVAR / DESCARTAR
+   ============================================================ */
+
+async function alterarStatus(
+    candidateId,
+    novoStatus
+) {
+
+    const {
+        error
+    } =
+        await supabaseClient
+
+            .from(
+                "exam_research_candidates"
+            )
+
+            .update(
+                {
+                    status:
+                        novoStatus
+                }
+            )
+
+            .eq(
+                "id",
+                candidateId
+            );
+
+
+    if (error) {
+
+        console.error(
+            "Erro ao alterar status:",
+            error
+        );
+
+
+        showMessage(
+            "error",
+            "Não foi possível atualizar a prova."
+        );
+
+        return;
+    }
+
+
+    const candidate =
+        currentCandidates.find(
+            function(item) {
+
+                return (
+                    item.id ===
+                    candidateId
+                );
+            }
+        );
+
+
+    if (
+        candidate
+    ) {
+
+        candidate.status =
+            novoStatus;
+    }
+
+
+    if (
+        novoStatus ===
+        "approved"
+    ) {
+
+        showMessage(
+            "success",
+            "✅ Prova aprovada para formar a base estatística Pareto."
+        );
+
+    } else {
+
+        showMessage(
+            "success",
+            "Prova descartada."
+        );
+    }
+
+
+    renderizarCandidatos();
+}
+
+
+/* ============================================================
+   CLIQUES NOS CARDS
+   ============================================================ */
+
+candidateList.addEventListener(
+    "click",
+    async function(event) {
+
+        const button =
+            event.target.closest(
+                "[data-action][data-id]"
+            );
+
+
+        if (!button) {
+
+            return;
+        }
+
+
+        const candidateId =
+            button.dataset.id;
+
+
+        const action =
+            button.dataset.action;
+
+
+        if (
+            action ===
+            "approve"
+        ) {
+
+            button.disabled =
+                true;
+
+
+            button.textContent =
+                "Salvando...";
+
+
+            await alterarStatus(
+                candidateId,
+                "approved"
+            );
+
+
+            return;
+        }
+
+
+        if (
+            action ===
+            "reject"
+        ) {
+
+            button.disabled =
+                true;
+
+
+            button.textContent =
+                "Salvando...";
+
+
+            await alterarStatus(
+                candidateId,
+                "rejected"
+            );
+        }
+    }
+);
+
+
+/* ============================================================
+   EVENTOS
+   ============================================================ */
+
+examSelect.addEventListener(
+    "change",
+    async function() {
+
+        clearMessage();
+
+
+        currentExamId =
+            examSelect.value ||
+            null;
+
+
+        atualizarBotaoAnalise();
+
+
+        if (
+            currentExamId
+        ) {
+
+            await carregarCandidatos(
+                currentExamId
+            );
+
+        } else {
+
+            currentCandidates =
+                [];
+
+
+            renderizarCandidatos();
+        }
+    }
+);
+
+
+sourceUrl.addEventListener(
+    "input",
+    atualizarBotaoAnalise
+);
+
+
+analyzeUrlButton.addEventListener(
+    "click",
+    analisarUrl
+);
+
+
+/* ============================================================
+   INICIAR
+   ============================================================ */
+
+async function iniciarPagina() {
+
+    const logged =
+        await verificarLogin();
+
+
+    if (!logged) {
+
+        return;
+    }
+
+
+    await carregarConcursos();
+
+
+    atualizarBotaoAnalise();
+}
+
+
+iniciarPagina();
