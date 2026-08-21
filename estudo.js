@@ -17,10 +17,9 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 const supabaseClient =
     window.supabase.createClient(
-        SUPABASE_URL="https://axxgqacfyrzgpgmqjxbp.supabase.co";
-        SUPABASE_PUBLISHABLE_KEY= "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
-    
-
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
 
 /* ============================================================
    ELEMENTOS
