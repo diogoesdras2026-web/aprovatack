@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Modo Pareto - AprovaTrack</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f7f9fc;
+            color: #172033;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo span {
+            color: #2563eb;
+        }
+
+        .back {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        main {
+            max-width: 1180px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .box {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .intro {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .intro strong {
+            color: #c2410c;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        select {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d7dce5;
+            border-radius: 9px;
+            background: white;
+            font-size: 15px;
+        }
+
+        .button {
+            margin-top: 18px;
+            border: none;
+            border-radius: 9px;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .primary {
+            background: #ea580c;
+            color: white;
+        }
+
+        .primary:hover {
+            opacity: 0.92;
+        }
+
+        .primary:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .message {
+            display: none;
+            margin-top: 18px;
+            padding: 14px;
+            border-radius: 9px;
+            line-height: 1.6;
+        }
+
+        .message.info {
+            display: block;
+            background: #eff6ff;
+            color: #1e40af;
+        }
+
+        .message.success {
+            display: block;
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .message.error {
+            display: block;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .summary-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .summary-label {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .candidate {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .candidate-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .candidate-title {
+            font-size: 17px;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .candidate-meta {
+            margin-top: 8px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .score {
+            min-width: 92px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .score-high {
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .score-medium {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .score-low {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 13px;
+        }
+
+        .tag {
+            background: #f1f5f9;
+            border-radius: 20px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        .official {
+            background: #ecfdf5;
+            color: #166534;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 17px;
+        }
+
+        .action-button {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .approve {
+            background: #2563eb;
+            color: white;
+        }
+
+        .reject {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .link {
+            display: inline-block;
+            margin-top: 14px;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .empty {
+            color: #64748b;
+            text-align: center;
+            padding: 35px 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 850px) {
+            .summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .candidate-top {
+                display: block;
+            }
+
+            .score {
+                margin-top: 15px;
+                width: max-content;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">
+        Aprova<span>Track</span>
+    </div>
+
+    <a
+        href="/"
+        class="back"
+    >
+        ← Dashboard
+    </a>
+
+</header>
+
+
+<main>
+
+    <h1>
+        🔥 Modo Pareto
+    </h1>
+
+    <p class="subtitle">
+        Descubra quais assuntos apresentam maior incidência
+        em provas semelhantes ao seu concurso.
+    </p>
+
+
+    <div class="intro">
+
+        <strong>
+            Como funciona?
+        </strong>
+
+        O AprovaTrack procura provas anteriores semelhantes,
+        considerando banca, cargo, área e recência.
+
+        Antes de qualquer prova entrar na estatística,
+        você poderá conferir e aprovar a fonte.
+
+    </div>
+
+
+    <!-- ======================================================
+         SELEÇÃO DO CONCURSO
+         ====================================================== -->
+
+    <section class="box">
+
+        <label for="examSelect">
+            Concurso
+        </label>
+
+        <select id="examSelect">
+
+            <option value="">
+                Carregando concursos...
+            </option>
+
+        </select>
+
+
+        <button
+            id="searchButton"
+            class="button primary"
+            type="button"
+            disabled
+        >
+            🔎 Pesquisar provas semelhantes
+        </button>
+
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+    </section>
+
+
+    <!-- ======================================================
+         RESUMO
+         ====================================================== -->
+
+    <section
+        id="summarySection"
+        class="summary hidden"
+    >
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Fontes encontradas
+            </div>
+
+            <div
+                id="foundCount"
+                class="summary-value"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Muito semelhantes
+            </div>
+
+            <div
+                id="highCount"
+                class="summary-value"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Fontes oficiais
+            </div>
+
+            <div
+                id="officialCount"
+                class="summary-value"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Aprovadas
+            </div>
+
+            <div
+                id="approvedCount"
+                class="summary-value"
+            >
+                0
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         RESULTADOS
+         ====================================================== -->
+
+    <section class="box">
+
+        <h2>
+            📚 Provas encontradas
+        </h2>
+
+        <p style="color:#64748b; line-height:1.6;">
+            Priorize fontes oficiais e provas com maior
+            índice de similaridade.
+        </p>
+
+
+        <div id="candidateList">
+
+            <div class="empty">
+                Selecione um concurso e clique em
+                “Pesquisar provas semelhantes”.
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         FUTURO NÚCLEO PARETO
+         ====================================================== -->
+
+    <section class="box">
+
+        <h2>
+            📊 Núcleo Pareto
+        </h2>
+
+        <div class="empty">
+
+            Depois que as provas forem aprovadas e analisadas,
+            o ranking de assuntos aparecerá aqui.
+
+            <br><br>
+
+            🔥 Classe A — maior incidência<br>
+            🟡 Classe B — incidência intermediária<br>
+            ⚪ Classe C — menor incidência
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script src="/pareto.js"></script>
+
+</body>
+
+</html>
