@@ -766,7 +766,477 @@ document
         }
     );
 
+/* ============================================================
+   IMPORTAR DISCIPLINA
+   ============================================================ */
 
+async function obterOuCriarDisciplina(nome) {
+
+    const {
+        data: existente,
+        error: searchError
+    } =
+        await supabaseClient
+            .from("subjects")
+            .select("id, name")
+            .eq("name", nome)
+            .limit(1)
+            .maybeSingle();
+
+
+    if (searchError) {
+        throw searchError;
+    }
+
+
+    if (existente) {
+        return existente;
+    }
+
+
+    const {
+        data: criada,
+        error: insertError
+    } =
+        await supabaseClient
+            .from("subjects")
+            .insert({
+                name: nome,
+                area: null
+            })
+            .select("id, name")
+            .single();
+
+
+    if (insertError) {
+        throw insertError;
+    }
+
+
+    return criada;
+}
+
+
+/* ============================================================
+   VINCULAR DISCIPLINA AO CONCURSO
+   ============================================================ */
+
+async function obterOuCriarExamSubject(
+    examId,
+    subjectId,
+    disciplina,
+    ordem
+) {
+
+    const {
+        data: existente,
+        error: searchError
+    } =
+        await supabaseClient
+            .from("exam_subjects")
+            .select("id")
+            .eq("exam_id", examId)
+            .eq("subject_id", subjectId)
+            .limit(1)
+            .maybeSingle();
+
+
+    if (searchError) {
+        throw searchError;
+    }
+
+
+    const valores = {
+
+        question_count:
+            disciplina.quantidade_questoes ??
+            null,
+
+        weight:
+            disciplina.peso ??
+            null,
+
+        edital_order:
+            ordem
+    };
+
+
+    if (existente) {
+
+        const {
+            error: updateError
+        } =
+            await supabaseClient
+                .from("exam_subjects")
+                .update(valores)
+                .eq(
+                    "id",
+                    existente.id
+                );
+
+
+        if (updateError) {
+            throw updateError;
+        }
+
+
+        return existente.id;
+    }
+
+
+    const {
+        data: criado,
+        error: insertError
+    } =
+        await supabaseClient
+            .from("exam_subjects")
+            .insert({
+                exam_id:
+                    examId,
+
+                subject_id:
+                    subjectId,
+
+                question_count:
+                    valores.question_count,
+
+                weight:
+                    valores.weight,
+
+                priority:
+                    null,
+
+                edital_order:
+                    valores.edital_order
+            })
+            .select("id")
+            .single();
+
+
+    if (insertError) {
+        throw insertError;
+    }
+
+
+    return criado.id;
+}
+
+
+/* ============================================================
+   IMPORTAR TÓPICOS DE UMA DISCIPLINA
+   ============================================================ */
+
+async function importarTopicos(
+    examSubjectId,
+    subjectId,
+    disciplina
+) {
+
+    /*
+     * Remove somente tópicos anteriormente
+     * importados automaticamente pela IA.
+     */
+
+    const {
+        error: deleteError
+    } =
+        await supabaseClient
+            .from("topics")
+            .delete()
+            .eq(
+                "exam_subject_id",
+                examSubjectId
+            )
+            .eq(
+                "source",
+                "ai_edital"
+            );
+
+
+    if (deleteError) {
+        throw deleteError;
+    }
+
+
+    const assuntos =
+        Array.isArray(
+            disciplina.assuntos
+        )
+            ? disciplina.assuntos
+            : [];
+
+
+    let totalCriado =
+        0;
+
+
+    for (
+        let topicIndex = 0;
+        topicIndex < assuntos.length;
+        topicIndex++
+    ) {
+
+        const assunto =
+            assuntos[topicIndex];
+
+
+        /*
+         * Cria o assunto principal.
+         */
+
+        const {
+            data: parentTopic,
+            error: parentError
+        } =
+            await supabaseClient
+                .from("topics")
+                .insert({
+
+                    subject_id:
+                        subjectId,
+
+                    exam_subject_id:
+                        examSubjectId,
+
+                    parent_id:
+                        null,
+
+                    name:
+                        assunto.nome,
+
+                    description:
+                        null,
+
+                    edital_reference:
+                        assunto.referencia ??
+                        null,
+
+                    source:
+                        "ai_edital",
+
+                    order_index:
+                        topicIndex + 1
+
+                })
+                .select("id")
+                .single();
+
+
+        if (parentError) {
+            throw parentError;
+        }
+
+
+        totalCriado++;
+
+
+        /*
+         * Agora cria os subassuntos,
+         * vinculados pelo parent_id.
+         */
+
+        const subassuntos =
+            Array.isArray(
+                assunto.subassuntos
+            )
+                ? assunto.subassuntos
+                : [];
+
+
+        if (
+            subassuntos.length >
+            0
+        ) {
+
+            const linhas =
+                subassuntos.map(
+                    function(
+                        subassunto,
+                        subIndex
+                    ) {
+
+                        return {
+
+                            subject_id:
+                                subjectId,
+
+                            exam_subject_id:
+                                examSubjectId,
+
+                            parent_id:
+                                parentTopic.id,
+
+                            name:
+                                subassunto,
+
+                            description:
+                                null,
+
+                            edital_reference:
+                                assunto.referencia ??
+                                null,
+
+                            source:
+                                "ai_edital",
+
+                            order_index:
+                                subIndex + 1
+                        };
+                    }
+                );
+
+
+            const {
+                error: childrenError
+            } =
+                await supabaseClient
+                    .from("topics")
+                    .insert(
+                        linhas
+                    );
+
+
+            if (childrenError) {
+                throw childrenError;
+            }
+
+
+            totalCriado +=
+                linhas.length;
+        }
+    }
+
+
+    return totalCriado;
+}
+
+
+/* ============================================================
+   IMPORTAÇÃO COMPLETA
+   ============================================================ */
+
+async function importarAnalise(
+    indicesSelecionados
+) {
+
+    if (
+        !currentAnalysis ||
+        !currentAnalysis.result
+    ) {
+
+        throw new Error(
+            "Nenhuma análise carregada."
+        );
+    }
+
+
+    const examId =
+        currentAnalysis.exam_id;
+
+
+    if (!examId) {
+
+        throw new Error(
+            "O concurso da análise não foi identificado."
+        );
+    }
+
+
+    const disciplinas =
+        Array.isArray(
+            currentAnalysis
+                .result
+                .disciplinas
+        )
+            ? currentAnalysis
+                .result
+                .disciplinas
+            : [];
+
+
+    let disciplinasImportadas =
+        0;
+
+    let topicosImportados =
+        0;
+
+
+    for (
+        const indice
+        of indicesSelecionados
+    ) {
+
+        const disciplina =
+            disciplinas[indice];
+
+
+        if (
+            !disciplina ||
+            !disciplina.nome
+        ) {
+
+            continue;
+        }
+
+
+        /*
+         * 1. subjects
+         */
+
+        const subject =
+            await obterOuCriarDisciplina(
+                disciplina.nome
+            );
+
+
+        /*
+         * 2. exam_subjects
+         */
+
+        const examSubjectId =
+            await obterOuCriarExamSubject(
+
+                examId,
+
+                subject.id,
+
+                disciplina,
+
+                indice + 1
+            );
+
+
+        /*
+         * 3. topics
+         */
+
+        const quantidadeTopicos =
+            await importarTopicos(
+
+                examSubjectId,
+
+                subject.id,
+
+                disciplina
+            );
+
+
+        disciplinasImportadas++;
+
+        topicosImportados +=
+            quantidadeTopicos;
+    }
+
+
+    return {
+
+        disciplinas:
+            disciplinasImportadas,
+
+        topicos:
+            topicosImportados
+    };
+}
 /* ============================================================
    CONFIRMAR
    ============================================================ */
@@ -777,7 +1247,13 @@ document
     )
     .addEventListener(
         "click",
-        function() {
+        async function() {
+
+            const button =
+                document.getElementById(
+                    "confirmButton"
+                );
+
 
             const selecionadas =
                 [];
@@ -818,14 +1294,94 @@ document
             }
 
 
+            /*
+             * Segurança extra:
+             * não importa se a IA não confirmou o cargo.
+             */
+
+            if (
+                currentAnalysis
+                    ?.result
+                    ?.cargo_alvo_encontrado
+                !== true
+            ) {
+
+                analysisMessage.className =
+                    "message error";
+
+                analysisMessage.textContent =
+                    "O cargo-alvo ainda não foi confirmado. A importação foi bloqueada.";
+
+                return;
+            }
+
+
+            button.disabled =
+                true;
+
+
+            button.textContent =
+                "Importando...";
+
+
             analysisMessage.className =
                 "message info";
 
 
             analysisMessage.textContent =
-                selecionadas.length +
-                " disciplina(s) selecionada(s). " +
-                "No próximo passo vamos importá-las para o banco.";
+                "Importando disciplinas, assuntos e subassuntos...";
+
+
+            try {
+
+                const resultado =
+                    await importarAnalise(
+                        selecionadas
+                    );
+
+
+                analysisMessage.className =
+                    "message info";
+
+
+                analysisMessage.textContent =
+                    "✅ Análise importada com sucesso! " +
+                    resultado.disciplinas +
+                    " disciplina(s) e " +
+                    resultado.topicos +
+                    " tópico(s)/subtópico(s) importados.";
+
+
+                button.textContent =
+                    "✅ Importação concluída";
+
+
+            } catch (error) {
+
+                console.error(
+                    "Erro de importação:",
+                    error
+                );
+
+
+                analysisMessage.className =
+                    "message error";
+
+
+                analysisMessage.textContent =
+                    "Erro ao importar: " +
+                    error.message;
+
+
+                button.textContent =
+                    "✅ Confirmar e importar";
+
+
+            } finally {
+
+                button.disabled =
+                    false;
+            }
         }
     );
 
