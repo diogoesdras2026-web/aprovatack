@@ -376,17 +376,65 @@
         </select>
 
 
-        <button
-            id="searchButton"
-            class="button primary"
-            type="button"
-            disabled
-        >
-            🔎 Pesquisar provas semelhantes
-        </button>
-
-
         <div
+    style="
+        margin-top: 25px;
+        padding-top: 22px;
+        border-top: 1px solid #e5e7eb;
+    "
+>
+
+    <h3 style="margin-top:0;">
+        🔗 Adicionar prova anterior
+    </h3>
+
+    <p
+        style="
+            color:#64748b;
+            line-height:1.6;
+        "
+    >
+        Cole abaixo o endereço público de uma prova anterior
+        ou de uma página que contenha a prova.
+        O AprovaTrack analisará a fonte e verificará
+        a semelhança com seu concurso.
+    </p>
+
+
+    <label for="sourceUrl">
+        URL da prova *
+    </label>
+
+    <input
+        id="sourceUrl"
+        type="url"
+        placeholder="https://site-da-banca.com/prova.pdf"
+        style="
+            width:100%;
+            padding:13px;
+            border:1px solid #d7dce5;
+            border-radius:9px;
+            font-size:15px;
+        "
+    >
+
+
+    <button
+        id="analyzeUrlButton"
+        class="button primary"
+        type="button"
+        disabled
+    >
+        🤖 Analisar prova pela URL
+    </button>
+
+</div>
+
+
+<div
+    id="message"
+    class="message"
+></div>
             id="message"
             class="message"
         ></div>
