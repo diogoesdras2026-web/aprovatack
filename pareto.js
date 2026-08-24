@@ -679,11 +679,32 @@ function montarConteudo(
                             margin-top:12px;
                         "
                     >
+<button
+    type="button"
+    class="action-button approve"
+    data-subject-action="approved"
+    data-review-id="${review.id}"
+    ${
+        coverage < 85 ||
+        status === "approved"
 
-                        <button
-                            type="button"
-                            class="action-button approve"
-                            data-subject-action="approved"
+            ? "disabled"
+
+            : ""
+    }
+>
+    ${
+        status === "approved"
+
+            ? "✅ Aprovada"
+
+            : coverage < 85
+
+                ? "🔒 Cobertura insuficiente"
+
+                : "✅ Aprovar"
+    }
+</button>
                             data-review-id="${review.id}"
                             ${
                                 status ===
