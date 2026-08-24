@@ -1655,9 +1655,13 @@ async function localizarSubjectId(
         );
 
 
+    /* ========================================================
+       1. TENTAR NOME EXATO NAS DISCIPLINAS DO EDITAL
+       ======================================================== */
+
     const {
-        data,
-        error
+        data: examSubjects,
+        error: examSubjectsError
     } =
         await supabaseClient
 
@@ -1682,15 +1686,17 @@ async function localizarSubjectId(
             );
 
 
-    if (error) {
+    if (
+        examSubjectsError
+    ) {
 
-        throw error;
+        throw examSubjectsError;
     }
 
 
     for (
         const item
-        of data || []
+        of examSubjects || []
     ) {
 
         const subject =
@@ -1725,10 +1731,72 @@ async function localizarSubjectId(
     }
 
 
+    /* ========================================================
+       2. PROCURAR MAPEAMENTO DE EQUIVALÊNCIA
+       ======================================================== */
+
+    const {
+        data: mapping,
+        error: mappingError
+    } =
+        await supabaseClient
+
+            .from(
+                "subject_mappings"
+            )
+
+            .select(
+                `
+                target_subject_id,
+                confidence,
+                source
+                `
+            )
+
+            .eq(
+                "exam_id",
+                examId
+            )
+
+            .eq(
+                "historical_subject_normalized",
+                nomeNormalizado
+            )
+
+            .maybeSingle();
+
+
+    if (
+        mappingError
+    ) {
+
+        throw mappingError;
+    }
+
+
+    if (
+        mapping?.target_subject_id
+    ) {
+
+        console.log(
+            "Mapeamento Pareto utilizado:",
+            nomeMateria,
+            "→",
+            mapping.target_subject_id
+        );
+
+
+        return mapping.target_subject_id;
+    }
+
+
+    /* ========================================================
+       3. ÚLTIMA TENTATIVA NO CATÁLOGO GLOBAL
+       ======================================================== */
+
     const {
         data: subjects,
-        error:
-            subjectError
+        error: subjectsError
     } =
         await supabaseClient
 
@@ -1742,10 +1810,10 @@ async function localizarSubjectId(
 
 
     if (
-        subjectError
+        subjectsError
     ) {
 
-        throw subjectError;
+        throw subjectsError;
     }
 
 
@@ -1768,12 +1836,16 @@ async function localizarSubjectId(
             );
 
 
-    return (
-        encontrado?.id ||
-        null
-    );
-}
+    if (
+        encontrado
+    ) {
 
+        return encontrado.id;
+    }
+
+
+    return null;
+}
 
 /* ============================================================
    CRIAR / REUTILIZAR PAST_EXAM
