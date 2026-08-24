@@ -738,80 +738,26 @@ async function carregarCandidatos() {
 
     if (!examId) {
 
-      currentCandidates =
-    data || [];
-
-
-/*
- * Busca as revisões de matéria
- * vinculadas às provas encontradas.
- */
-
-for (
-    const candidate
-    of currentCandidates
-) {
-
-    const {
-        data: reviews,
-        error: reviewsError
-    } =
-        await supabaseClient
-
-            .from(
-                "past_exam_subject_reviews"
-            )
-
-            .select(
-                `
-                id,
-                subject_name,
-                normalized_subject_name,
-                question_count,
-                classified_questions,
-                coverage_percent,
-                status,
-                statistical_weight,
-                approved_at
-                `
-            )
-
-            .eq(
-                "candidate_id",
-                candidate.id
-            )
-
-            .order(
-                "subject_name",
-                {
-                    ascending: true
-                }
-            );
-
-
-    if (reviewsError) {
-
-        console.error(
-            "Erro ao carregar matérias:",
-            reviewsError
-        );
-
-
-        candidate.subject_reviews =
+        currentCandidates =
             [];
 
-    } else {
+        renderizarCandidatos();
 
-        candidate.subject_reviews =
-            reviews || [];
-    }
-}
-
-
-renderizarCandidatos();
         return;
     }
 
+
+    candidateList.innerHTML =
+        `
+        <div class="empty">
+            Carregando provas analisadas...
+        </div>
+        `;
+
+
+    /* ========================================================
+       BUSCAR PROVAS
+       ======================================================== */
 
     const {
         data,
@@ -840,96 +786,111 @@ renderizarCandidatos();
 
     if (error) {
 
-        console.error(error);
+        console.error(
+            "Erro ao carregar provas:",
+            error
+        );
+
 
         mostrarMensagem(
             "error",
             "Erro ao carregar provas analisadas."
         );
 
+
+        currentCandidates =
+            [];
+
+        renderizarCandidatos();
+
         return;
     }
 
 
-  currentCandidates =
-    data || [];
+    currentCandidates =
+        data || [];
 
 
-/*
- * Carrega as matérias vinculadas
- * a cada prova analisada.
- */
+    /* ========================================================
+       BUSCAR MATÉRIAS DE CADA PROVA
+       ======================================================== */
 
-for (
-    const candidate
-    of currentCandidates
-) {
+    for (
+        const candidate
+        of currentCandidates
+    ) {
 
-    const {
-        data: reviews,
-        error: reviewsError
-    } =
-        await supabaseClient
+        const {
+            data: reviews,
+            error: reviewsError
+        } =
+            await supabaseClient
 
-            .from(
-                "past_exam_subject_reviews"
-            )
+                .from(
+                    "past_exam_subject_reviews"
+                )
 
-            .select(
-                `
-                id,
-                candidate_id,
-                subject_name,
-                normalized_subject_name,
-                question_count,
-                classified_questions,
-                coverage_percent,
-                status,
-                statistical_weight,
-                approved_at
-                `
-            )
+                .select(
+                    `
+                    id,
+                    candidate_id,
+                    subject_name,
+                    normalized_subject_name,
+                    question_count,
+                    classified_questions,
+                    coverage_percent,
+                    status,
+                    statistical_weight,
+                    approved_at
+                    `
+                )
 
-            .eq(
-                "candidate_id",
-                candidate.id
-            )
+                .eq(
+                    "candidate_id",
+                    candidate.id
+                )
 
-            .order(
-                "subject_name",
-                {
-                    ascending: true
-                }
+                .order(
+                    "subject_name",
+                    {
+                        ascending: true
+                    }
+                );
+
+
+        if (reviewsError) {
+
+            console.error(
+                "Erro ao carregar matérias do candidato:",
+                candidate.id,
+                reviewsError
             );
 
 
-    if (reviewsError) {
+            candidate.subject_reviews =
+                [];
 
-        console.error(
-            "Erro ao carregar matérias do candidato:",
-            candidate.id,
-            reviewsError
-        );
+        } else {
 
-        candidate.subject_reviews =
-            [];
+            console.log(
+                "Matérias carregadas:",
+                candidate.id,
+                reviews
+            );
 
-    } else {
 
-        console.log(
-            "Matérias carregadas:",
-            candidate.id,
-            reviews
-        );
-
-        candidate.subject_reviews =
-            reviews || [];
+            candidate.subject_reviews =
+                reviews || [];
+        }
     }
+
+
+    /* ========================================================
+       MOSTRAR RESULTADOS
+       ======================================================== */
+
+    renderizarCandidatos();
 }
-
-
-renderizarCandidatos();
-
 
 /* ============================================================
    ANALISAR URL
