@@ -299,21 +299,65 @@ function atualizarResumo() {
    MOSTRAR CONTEÚDO DA PROVA
    ============================================================ */
 
-function montarConteudo(candidate) {
+function badgeCobertura(
+    coverage
+) {
 
-    const subjects =
+    const value =
+        Number(
+            coverage || 0
+        );
+
+
+    if (value >= 85) {
+
+        return "✅ Excelente";
+    }
+
+
+    if (value >= 70) {
+
+        return "⚠️ Parcial";
+    }
+
+
+    return "🔴 Baixa cobertura";
+}
+
+
+/* ============================================================
+   MATÉRIAS DA PROVA
+   ============================================================ */
+
+function montarConteudo(
+    candidate
+) {
+
+    const reviews =
         Array.isArray(
-            candidate
-                ?.source_metadata
-                ?.subjects
+            candidate.subject_reviews
         )
-            ? candidate.source_metadata.subjects
+
+            ? candidate.subject_reviews
+
             : [];
 
 
-    if (subjects.length === 0) {
+    if (
+        reviews.length === 0
+    ) {
 
-        return "";
+        return `
+            <div style="
+                margin-top:16px;
+                padding:15px;
+                background:#f8fafc;
+                border-radius:10px;
+                color:#64748b;
+            ">
+                Nenhuma matéria disponível para revisão.
+            </div>
+        `;
     }
 
 
@@ -327,50 +371,145 @@ function montarConteudo(candidate) {
         ">
 
         <strong>
-            📊 Conteúdo identificado
+            📊 Aprovação por matéria
         </strong>
         `;
 
 
-    subjects.forEach(
-        function(subject) {
+    reviews.forEach(
+        function(review) {
+
+            const coverage =
+                Number(
+                    review.coverage_percent || 0
+                );
+
+
+            const status =
+                review.status ||
+                "pending";
+
 
             html +=
                 `
-                <div style="margin-top:12px;">
-                    <strong>
-                        ${subject.name}
-                    </strong>
+                <div style="
+                    margin-top:16px;
+                    padding:14px;
+                    background:white;
+                    border:1px solid #e5e7eb;
+                    border-radius:10px;
+                ">
+
+                    <div style="
+                        font-weight:bold;
+                        font-size:16px;
+                    ">
+                        ${review.subject_name}
+                    </div>
+
+
+                    <div style="
+                        margin-top:7px;
+                        color:#64748b;
+                        line-height:1.6;
+                    ">
+
+                        Questões da matéria:
+                        <strong>
+                            ${review.question_count}
+                        </strong>
+
+                        <br>
+
+                        Questões classificadas:
+                        <strong>
+                            ${review.classified_questions}
+                        </strong>
+
+                        <br>
+
+                        Cobertura:
+                        <strong>
+                            ${coverage.toFixed(1)}%
+                        </strong>
+
+                        —
+                        ${badgeCobertura(coverage)}
+
+                    </div>
+
+
+                    <div style="
+                        display:flex;
+                        flex-wrap:wrap;
+                        gap:8px;
+                        margin-top:12px;
+                    ">
+
+                        <button
+                            type="button"
+                            class="action-button approve"
+                            data-subject-action="approved"
+                            data-review-id="${review.id}"
+                            ${
+                                status === "approved"
+                                    ? "disabled"
+                                    : ""
+                            }
+                        >
+                            ${
+                                status === "approved"
+                                    ? "✅ Aprovada"
+                                    : "✅ Aprovar"
+                            }
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="action-button"
+                            style="
+                                background:#fff7ed;
+                                color:#c2410c;
+                            "
+                            data-subject-action="approved_partial"
+                            data-review-id="${review.id}"
+                            ${
+                                status === "approved_partial"
+                                    ? "disabled"
+                                    : ""
+                            }
+                        >
+                            ${
+                                status === "approved_partial"
+                                    ? "⚠️ Aprovada com ressalva"
+                                    : "⚠️ Aprovar com ressalva"
+                            }
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="action-button reject"
+                            data-subject-action="rejected"
+                            data-review-id="${review.id}"
+                            ${
+                                status === "rejected"
+                                    ? "disabled"
+                                    : ""
+                            }
+                        >
+                            ${
+                                status === "rejected"
+                                    ? "❌ Descartada"
+                                    : "❌ Descartar"
+                            }
+                        </button>
+
+                    </div>
+
                 </div>
                 `;
-
-
-            const topics =
-                Array.isArray(
-                    subject.topics
-                )
-                    ? subject.topics
-                    : [];
-
-
-            topics
-                .slice(0, 10)
-                .forEach(
-                    function(topic) {
-
-                        html +=
-                            `
-                            <div style="
-                                margin-top:4px;
-                                color:#64748b;
-                            ">
-                                • ${topic.name}
-                                — ${topic.question_count || 0}
-                                questão(ões)
-                            </div>
-                            `;
-                    }
-                );
         }
     );
 
@@ -381,7 +520,6 @@ function montarConteudo(candidate) {
 
     return html;
 }
-
 
 /* ============================================================
    RENDERIZAR PROVAS
@@ -600,10 +738,77 @@ async function carregarCandidatos() {
 
     if (!examId) {
 
-        currentCandidates = [];
+      currentCandidates =
+    data || [];
 
-        renderizarCandidatos();
 
+/*
+ * Busca as revisões de matéria
+ * vinculadas às provas encontradas.
+ */
+
+for (
+    const candidate
+    of currentCandidates
+) {
+
+    const {
+        data: reviews,
+        error: reviewsError
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exam_subject_reviews"
+            )
+
+            .select(
+                `
+                id,
+                subject_name,
+                normalized_subject_name,
+                question_count,
+                classified_questions,
+                coverage_percent,
+                status,
+                statistical_weight,
+                approved_at
+                `
+            )
+
+            .eq(
+                "candidate_id",
+                candidate.id
+            )
+
+            .order(
+                "subject_name",
+                {
+                    ascending: true
+                }
+            );
+
+
+    if (reviewsError) {
+
+        console.error(
+            "Erro ao carregar matérias:",
+            reviewsError
+        );
+
+
+        candidate.subject_reviews =
+            [];
+
+    } else {
+
+        candidate.subject_reviews =
+            reviews || [];
+    }
+}
+
+
+renderizarCandidatos();
         return;
     }
 
@@ -871,7 +1076,168 @@ candidateList.addEventListener(
         await carregarCandidatos();
     }
 );
+/* ============================================================
+   APROVAÇÃO POR MATÉRIA
+   ============================================================ */
 
+candidateList.addEventListener(
+    "click",
+    async function(event) {
+
+        const button =
+            event.target.closest(
+                "[data-subject-action][data-review-id]"
+            );
+
+
+        if (!button) {
+
+            return;
+        }
+
+
+        const reviewId =
+            button.dataset.reviewId;
+
+
+        const action =
+            button.dataset.subjectAction;
+
+
+        let statisticalWeight =
+            0;
+
+
+        if (
+            action ===
+            "approved"
+        ) {
+
+            statisticalWeight =
+                1;
+        }
+
+
+        if (
+            action ===
+            "approved_partial"
+        ) {
+
+            statisticalWeight =
+                0.5;
+        }
+
+
+        const approvedAt =
+
+            action ===
+            "rejected"
+
+                ? null
+
+                : new Date()
+                    .toISOString();
+
+
+        button.disabled =
+            true;
+
+
+        button.textContent =
+            "Salvando...";
+
+
+        const {
+            error
+        } =
+            await supabaseClient
+
+                .from(
+                    "past_exam_subject_reviews"
+                )
+
+                .update(
+                    {
+
+                        status:
+                            action,
+
+                        statistical_weight:
+                            statisticalWeight,
+
+                        approved_at:
+                            approvedAt,
+
+                        updated_at:
+                            new Date()
+                                .toISOString()
+                    }
+                )
+
+                .eq(
+                    "id",
+                    reviewId
+                );
+
+
+        if (error) {
+
+            console.error(
+                "Erro ao atualizar matéria:",
+                error
+            );
+
+
+            mostrarMensagem(
+                "error",
+                "Não foi possível atualizar a matéria."
+            );
+
+
+            button.disabled =
+                false;
+
+
+            return;
+        }
+
+
+        if (
+            action ===
+            "approved"
+        ) {
+
+            mostrarMensagem(
+                "success",
+                "✅ Matéria aprovada para o Pareto."
+            );
+        }
+
+
+        else if (
+            action ===
+            "approved_partial"
+        ) {
+
+            mostrarMensagem(
+                "success",
+                "⚠️ Matéria aprovada com peso estatístico reduzido."
+            );
+        }
+
+
+        else {
+
+            mostrarMensagem(
+                "success",
+                "❌ Matéria descartada da estatística."
+            );
+        }
+
+
+        await carregarCandidatos();
+    }
+);
 
 /* ============================================================
    EVENTOS
