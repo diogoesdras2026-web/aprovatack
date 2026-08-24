@@ -851,12 +851,84 @@ renderizarCandidatos();
     }
 
 
-    currentCandidates =
-        data || [];
+  currentCandidates =
+    data || [];
 
 
-    renderizarCandidatos();
+/*
+ * Carrega as matérias vinculadas
+ * a cada prova analisada.
+ */
+
+for (
+    const candidate
+    of currentCandidates
+) {
+
+    const {
+        data: reviews,
+        error: reviewsError
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exam_subject_reviews"
+            )
+
+            .select(
+                `
+                id,
+                candidate_id,
+                subject_name,
+                normalized_subject_name,
+                question_count,
+                classified_questions,
+                coverage_percent,
+                status,
+                statistical_weight,
+                approved_at
+                `
+            )
+
+            .eq(
+                "candidate_id",
+                candidate.id
+            )
+
+            .order(
+                "subject_name",
+                {
+                    ascending: true
+                }
+            );
+
+
+    if (reviewsError) {
+
+        console.error(
+            "Erro ao carregar matérias do candidato:",
+            candidate.id,
+            reviewsError
+        );
+
+        candidate.subject_reviews =
+            [];
+
+    } else {
+
+        console.log(
+            "Matérias carregadas:",
+            candidate.id,
+            reviews
+        );
+
+        candidate.subject_reviews =
+            reviews || [];
+    }
 }
+
+
+renderizarCandidatos();
 
 
 /* ============================================================
