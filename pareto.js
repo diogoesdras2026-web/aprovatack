@@ -3,11 +3,9 @@
    ============================================================ */
 
 const SUPABASE_URL =
-    "https://axxgqacfyrzgpgmqjxbp.supabase.co";
-
-
+ "https://axxgqacfyrzgpgmqjxbp.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
-     "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
+  "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
 
 
 const supabaseClient =
@@ -17,48 +15,77 @@ const supabaseClient =
     );
 
 
+/* ============================================================
+   ELEMENTOS
+   ============================================================ */
+
 const examSelect =
-    document.getElementById("examSelect");
+    document.getElementById(
+        "examSelect"
+    );
 
 const sourceUrl =
-    document.getElementById("sourceUrl");
+    document.getElementById(
+        "sourceUrl"
+    );
 
 const analyzeUrlButton =
-    document.getElementById("analyzeUrlButton");
+    document.getElementById(
+        "analyzeUrlButton"
+    );
 
 const message =
-    document.getElementById("message");
+    document.getElementById(
+        "message"
+    );
 
 const summarySection =
-    document.getElementById("summarySection");
+    document.getElementById(
+        "summarySection"
+    );
 
 const foundCount =
-    document.getElementById("foundCount");
+    document.getElementById(
+        "foundCount"
+    );
 
 const highCount =
-    document.getElementById("highCount");
+    document.getElementById(
+        "highCount"
+    );
 
 const officialCount =
-    document.getElementById("officialCount");
+    document.getElementById(
+        "officialCount"
+    );
 
 const approvedCount =
-    document.getElementById("approvedCount");
+    document.getElementById(
+        "approvedCount"
+    );
 
 const candidateList =
-    document.getElementById("candidateList");
+    document.getElementById(
+        "candidateList"
+    );
 
 
-let currentCandidates = [];
+let currentCandidates =
+    [];
 
 
 /* ============================================================
    MENSAGENS
    ============================================================ */
 
-function mostrarMensagem(tipo, texto) {
+function mostrarMensagem(
+    tipo,
+    texto
+) {
 
     message.className =
-        "message " + tipo;
+        "message " +
+        tipo;
 
     message.textContent =
         texto;
@@ -76,19 +103,52 @@ function limparMensagem() {
 
 
 /* ============================================================
-   VALIDAR URL
+   NORMALIZAÇÃO
    ============================================================ */
 
-function urlValida(valor) {
+function normalizarTextoPareto(
+    valor
+) {
+
+    return String(
+        valor || ""
+    )
+        .normalize(
+            "NFD"
+        )
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .trim()
+        .toLowerCase();
+}
+
+
+/* ============================================================
+   URL
+   ============================================================ */
+
+function urlValida(
+    valor
+) {
 
     try {
 
         const url =
-            new URL(valor);
+            new URL(
+                valor
+            );
+
 
         return (
-            url.protocol === "http:" ||
-            url.protocol === "https:"
+            url.protocol ===
+            "http:"
+
+            ||
+
+            url.protocol ===
+            "https:"
         );
 
     } catch {
@@ -98,10 +158,6 @@ function urlValida(valor) {
 }
 
 
-/* ============================================================
-   HABILITAR BOTÃO
-   ============================================================ */
-
 function atualizarBotaoAnalise() {
 
     const temConcurso =
@@ -109,13 +165,20 @@ function atualizarBotaoAnalise() {
             examSelect.value
         );
 
+
     const temUrlValida =
         urlValida(
-            sourceUrl.value.trim()
+            sourceUrl
+                .value
+                .trim()
         );
 
+
     analyzeUrlButton.disabled =
-        !(temConcurso && temUrlValida);
+        !(
+            temConcurso &&
+            temUrlValida
+        );
 }
 
 
@@ -136,7 +199,8 @@ async function verificarLogin() {
 
     if (
         error ||
-        !data.session
+        !data.session ||
+        !data.session.user
     ) {
 
         window.location.href =
@@ -151,7 +215,7 @@ async function verificarLogin() {
 
 
 /* ============================================================
-   CARREGAR CONCURSOS
+   CONCURSOS
    ============================================================ */
 
 async function carregarConcursos() {
@@ -162,7 +226,9 @@ async function carregarConcursos() {
     } =
         await supabaseClient
 
-            .from("exams")
+            .from(
+                "exams"
+            )
 
             .select(
                 "id, name, position"
@@ -171,7 +237,8 @@ async function carregarConcursos() {
             .order(
                 "created_at",
                 {
-                    ascending: false
+                    ascending:
+                        false
                 }
             );
 
@@ -182,12 +249,17 @@ async function carregarConcursos() {
 
     if (error) {
 
-        console.error(error);
+        console.error(
+            "Erro ao carregar concursos:",
+            error
+        );
+
 
         mostrarMensagem(
             "error",
-            "Erro ao carregar concursos."
+            "Não foi possível carregar seus concursos."
         );
+
 
         return;
     }
@@ -207,10 +279,13 @@ async function carregarConcursos() {
 
 
             option.textContent =
+
                 exam.position
+
                     ? exam.name +
                       " — " +
                       exam.position
+
                     : exam.name;
 
 
@@ -223,80 +298,7 @@ async function carregarConcursos() {
 
 
 /* ============================================================
-   RESUMO
-   ============================================================ */
-
-function atualizarResumo() {
-
-    const total =
-        currentCandidates.length;
-
-
-    const muitoSemelhantes =
-        currentCandidates.filter(
-            function(item) {
-
-                return (
-                    Number(
-                        item.similarity_score || 0
-                    ) >= 85
-                );
-            }
-        ).length;
-
-
-    const oficiais =
-        currentCandidates.filter(
-            function(item) {
-
-                return (
-                    item.is_official === true
-                );
-            }
-        ).length;
-
-
-    const aprovadas =
-        currentCandidates.filter(
-            function(item) {
-
-                return (
-                    item.status === "approved"
-                );
-            }
-        ).length;
-
-
-    foundCount.textContent =
-        String(total);
-
-    highCount.textContent =
-        String(muitoSemelhantes);
-
-    officialCount.textContent =
-        String(oficiais);
-
-    approvedCount.textContent =
-        String(aprovadas);
-
-
-    if (total > 0) {
-
-        summarySection.classList.remove(
-            "hidden"
-        );
-
-    } else {
-
-        summarySection.classList.add(
-            "hidden"
-        );
-    }
-}
-
-
-/* ============================================================
-   MOSTRAR CONTEÚDO DA PROVA
+   COBERTURA
    ============================================================ */
 
 function badgeCobertura(
@@ -309,13 +311,19 @@ function badgeCobertura(
         );
 
 
-    if (value >= 85) {
+    if (
+        value >=
+        85
+    ) {
 
         return "✅ Excelente";
     }
 
 
-    if (value >= 70) {
+    if (
+        value >=
+        70
+    ) {
 
         return "⚠️ Parcial";
     }
@@ -326,7 +334,218 @@ function badgeCobertura(
 
 
 /* ============================================================
-   MATÉRIAS DA PROVA
+   SIMILARIDADE
+   ============================================================ */
+
+function getScoreClass(
+    score
+) {
+
+    const value =
+        Number(
+            score || 0
+        );
+
+
+    if (
+        value >=
+        85
+    ) {
+
+        return "score-high";
+    }
+
+
+    if (
+        value >=
+        70
+    ) {
+
+        return "score-medium";
+    }
+
+
+    return "score-low";
+}
+
+
+function getScoreLabel(
+    score
+) {
+
+    const value =
+        Number(
+            score || 0
+        );
+
+
+    if (
+        value >=
+        85
+    ) {
+
+        return "🔥 Muito semelhante";
+    }
+
+
+    if (
+        value >=
+        70
+    ) {
+
+        return "🟢 Semelhante";
+    }
+
+
+    if (
+        value >=
+        55
+    ) {
+
+        return "🟡 Complementar";
+    }
+
+
+    return "⚪ Baixa similaridade";
+}
+
+
+/* ============================================================
+   TAGS
+   ============================================================ */
+
+function criarTag(
+    texto,
+    classeExtra = ""
+) {
+
+    const tag =
+        document.createElement(
+            "span"
+        );
+
+
+    tag.className =
+        "tag " +
+        classeExtra;
+
+
+    tag.textContent =
+        texto;
+
+
+    return tag;
+}
+
+
+/* ============================================================
+   RAZÕES DA SIMILARIDADE
+   ============================================================ */
+
+function criarRazoes(
+    candidate
+) {
+
+    const reasons =
+
+        Array.isArray(
+            candidate.similarity_reasons
+        )
+
+            ? candidate.similarity_reasons
+
+            : [];
+
+
+    if (
+        reasons.length ===
+        0
+    ) {
+
+        return null;
+    }
+
+
+    const container =
+        document.createElement(
+            "div"
+        );
+
+
+    container.style.marginTop =
+        "15px";
+
+
+    container.style.fontSize =
+        "13px";
+
+
+    container.style.color =
+        "#64748b";
+
+
+    const title =
+        document.createElement(
+            "strong"
+        );
+
+
+    title.textContent =
+        "Critérios de similaridade:";
+
+
+    container.appendChild(
+        title
+    );
+
+
+    reasons.forEach(
+        function(reason) {
+
+            const line =
+                document.createElement(
+                    "div"
+                );
+
+
+            line.style.marginTop =
+                "5px";
+
+
+            line.textContent =
+
+                "+" +
+
+                Number(
+                    reason?.points ||
+                    0
+                )
+
+                +
+
+                " — "
+
+                +
+
+                (
+                    reason?.label ||
+                    "Critério"
+                );
+
+
+            container.appendChild(
+                line
+            );
+        }
+    );
+
+
+    return container;
+}
+
+
+/* ============================================================
+   APROVAÇÃO POR MATÉRIA
    ============================================================ */
 
 function montarConteudo(
@@ -334,6 +553,7 @@ function montarConteudo(
 ) {
 
     const reviews =
+
         Array.isArray(
             candidate.subject_reviews
         )
@@ -344,17 +564,20 @@ function montarConteudo(
 
 
     if (
-        reviews.length === 0
+        reviews.length ===
+        0
     ) {
 
         return `
-            <div style="
-                margin-top:16px;
-                padding:15px;
-                background:#f8fafc;
-                border-radius:10px;
-                color:#64748b;
-            ">
+            <div
+                style="
+                    margin-top:16px;
+                    padding:15px;
+                    background:#f8fafc;
+                    border-radius:10px;
+                    color:#64748b;
+                "
+            >
                 Nenhuma matéria disponível para revisão.
             </div>
         `;
@@ -363,16 +586,18 @@ function montarConteudo(
 
     let html =
         `
-        <div style="
-            margin-top:16px;
-            padding:15px;
-            background:#f8fafc;
-            border-radius:10px;
-        ">
+        <div
+            style="
+                margin-top:16px;
+                padding:15px;
+                background:#f8fafc;
+                border-radius:10px;
+            "
+        >
 
-        <strong>
-            📊 Aprovação por matéria
-        </strong>
+            <strong>
+                📊 Aprovação por matéria
+            </strong>
         `;
 
 
@@ -381,7 +606,8 @@ function montarConteudo(
 
             const coverage =
                 Number(
-                    review.coverage_percent || 0
+                    review.coverage_percent ||
+                    0
                 );
 
 
@@ -392,27 +618,33 @@ function montarConteudo(
 
             html +=
                 `
-                <div style="
-                    margin-top:16px;
-                    padding:14px;
-                    background:white;
-                    border:1px solid #e5e7eb;
-                    border-radius:10px;
-                ">
+                <div
+                    style="
+                        margin-top:16px;
+                        padding:14px;
+                        background:white;
+                        border:1px solid #e5e7eb;
+                        border-radius:10px;
+                    "
+                >
 
-                    <div style="
-                        font-weight:bold;
-                        font-size:16px;
-                    ">
+                    <div
+                        style="
+                            font-weight:bold;
+                            font-size:16px;
+                        "
+                    >
                         ${review.subject_name}
                     </div>
 
 
-                    <div style="
-                        margin-top:7px;
-                        color:#64748b;
-                        line-height:1.6;
-                    ">
+                    <div
+                        style="
+                            margin-top:7px;
+                            color:#64748b;
+                            line-height:1.6;
+                        "
+                    >
 
                         Questões da matéria:
                         <strong>
@@ -439,12 +671,14 @@ function montarConteudo(
                     </div>
 
 
-                    <div style="
-                        display:flex;
-                        flex-wrap:wrap;
-                        gap:8px;
-                        margin-top:12px;
-                    ">
+                    <div
+                        style="
+                            display:flex;
+                            flex-wrap:wrap;
+                            gap:8px;
+                            margin-top:12px;
+                        "
+                    >
 
                         <button
                             type="button"
@@ -452,14 +686,20 @@ function montarConteudo(
                             data-subject-action="approved"
                             data-review-id="${review.id}"
                             ${
-                                status === "approved"
+                                status ===
+                                "approved"
+
                                     ? "disabled"
+
                                     : ""
                             }
                         >
                             ${
-                                status === "approved"
+                                status ===
+                                "approved"
+
                                     ? "✅ Aprovada"
+
                                     : "✅ Aprovar"
                             }
                         </button>
@@ -475,14 +715,20 @@ function montarConteudo(
                             data-subject-action="approved_partial"
                             data-review-id="${review.id}"
                             ${
-                                status === "approved_partial"
+                                status ===
+                                "approved_partial"
+
                                     ? "disabled"
+
                                     : ""
                             }
                         >
                             ${
-                                status === "approved_partial"
+                                status ===
+                                "approved_partial"
+
                                     ? "⚠️ Aprovada com ressalva"
+
                                     : "⚠️ Aprovar com ressalva"
                             }
                         </button>
@@ -494,14 +740,20 @@ function montarConteudo(
                             data-subject-action="rejected"
                             data-review-id="${review.id}"
                             ${
-                                status === "rejected"
+                                status ===
+                                "rejected"
+
                                     ? "disabled"
+
                                     : ""
                             }
                         >
                             ${
-                                status === "rejected"
+                                status ===
+                                "rejected"
+
                                     ? "❌ Descartada"
+
                                     : "❌ Descartar"
                             }
                         </button>
@@ -521,8 +773,468 @@ function montarConteudo(
     return html;
 }
 
+
 /* ============================================================
-   RENDERIZAR PROVAS
+   CARD DA PROVA
+   ============================================================ */
+
+function criarCandidateCard(
+    candidate
+) {
+
+    const container =
+        document.createElement(
+            "div"
+        );
+
+
+    container.className =
+        "candidate";
+
+
+    const top =
+        document.createElement(
+            "div"
+        );
+
+
+    top.className =
+        "candidate-top";
+
+
+    const left =
+        document.createElement(
+            "div"
+        );
+
+
+    const title =
+        document.createElement(
+            "div"
+        );
+
+
+    title.className =
+        "candidate-title";
+
+
+    title.textContent =
+        candidate.title ||
+        "Prova anterior";
+
+
+    left.appendChild(
+        title
+    );
+
+
+    const meta =
+        document.createElement(
+            "div"
+        );
+
+
+    meta.className =
+        "candidate-meta";
+
+
+    const parts =
+        [];
+
+
+    if (
+        candidate.board
+    ) {
+
+        parts.push(
+            candidate.board
+        );
+    }
+
+
+    if (
+        candidate.position
+    ) {
+
+        parts.push(
+            candidate.position
+        );
+    }
+
+
+    if (
+        candidate.organization
+    ) {
+
+        parts.push(
+            candidate.organization
+        );
+    }
+
+
+    if (
+        candidate.exam_year
+    ) {
+
+        parts.push(
+            String(
+                candidate.exam_year
+            )
+        );
+    }
+
+
+    meta.textContent =
+        parts.join(
+            " • "
+        );
+
+
+    left.appendChild(
+        meta
+    );
+
+
+    top.appendChild(
+        left
+    );
+
+
+    const score =
+        document.createElement(
+            "div"
+        );
+
+
+    score.className =
+
+        "score " +
+
+        getScoreClass(
+            candidate.similarity_score
+        );
+
+
+    score.textContent =
+
+        Math.round(
+            Number(
+                candidate.similarity_score ||
+                0
+            )
+        )
+
+        +
+
+        "/100";
+
+
+    top.appendChild(
+        score
+    );
+
+
+    container.appendChild(
+        top
+    );
+
+
+    const scoreLabel =
+        document.createElement(
+            "div"
+        );
+
+
+    scoreLabel.style.marginTop =
+        "10px";
+
+
+    scoreLabel.style.fontWeight =
+        "bold";
+
+
+    scoreLabel.textContent =
+        getScoreLabel(
+            candidate.similarity_score
+        );
+
+
+    container.appendChild(
+        scoreLabel
+    );
+
+
+    const tags =
+        document.createElement(
+            "div"
+        );
+
+
+    tags.className =
+        "tags";
+
+
+    if (
+        candidate.is_official
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "✅ Fonte oficial",
+                "official"
+            )
+        );
+    }
+
+
+    if (
+        candidate.has_exam
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "📄 Prova"
+            )
+        );
+    }
+
+
+    if (
+        candidate.has_answer_key
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                "✅ Gabarito"
+            )
+        );
+    }
+
+
+    if (
+        candidate.source_domain
+    ) {
+
+        tags.appendChild(
+            criarTag(
+                candidate.source_domain
+            )
+        );
+    }
+
+
+    container.appendChild(
+        tags
+    );
+
+
+    const reasons =
+        criarRazoes(
+            candidate
+        );
+
+
+    if (
+        reasons
+    ) {
+
+        container.appendChild(
+            reasons
+        );
+    }
+
+
+    const contentWrapper =
+        document.createElement(
+            "div"
+        );
+
+
+    contentWrapper.innerHTML =
+        montarConteudo(
+            candidate
+        );
+
+
+    while (
+        contentWrapper.firstChild
+    ) {
+
+        container.appendChild(
+            contentWrapper.firstChild
+        );
+    }
+
+
+    if (
+        candidate.source_url
+    ) {
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+
+        link.className =
+            "link";
+
+
+        link.href =
+            candidate.source_url;
+
+
+        link.target =
+            "_blank";
+
+
+        link.rel =
+            "noopener noreferrer";
+
+
+        link.textContent =
+            "🔗 Abrir fonte original";
+
+
+        container.appendChild(
+            link
+        );
+    }
+
+
+    return container;
+}
+
+
+/* ============================================================
+   RESUMO
+   ============================================================ */
+
+function atualizarResumo() {
+
+    const total =
+        currentCandidates.length;
+
+
+    const high =
+        currentCandidates.filter(
+            function(candidate) {
+
+                return (
+                    Number(
+                        candidate.similarity_score ||
+                        0
+                    ) >=
+                    85
+                );
+            }
+        ).length;
+
+
+    const official =
+        currentCandidates.filter(
+            function(candidate) {
+
+                return (
+                    candidate.is_official ===
+                    true
+                );
+            }
+        ).length;
+
+
+    const approvedSubjects =
+        currentCandidates.reduce(
+            function(
+                totalApproved,
+                candidate
+            ) {
+
+                const reviews =
+
+                    Array.isArray(
+                        candidate.subject_reviews
+                    )
+
+                        ? candidate.subject_reviews
+
+                        : [];
+
+
+                return (
+
+                    totalApproved
+
+                    +
+
+                    reviews.filter(
+                        function(review) {
+
+                            return (
+                                review.status ===
+                                "approved"
+
+                                ||
+
+                                review.status ===
+                                "approved_partial"
+                            );
+                        }
+                    ).length
+                );
+            },
+            0
+        );
+
+
+    foundCount.textContent =
+        String(
+            total
+        );
+
+
+    highCount.textContent =
+        String(
+            high
+        );
+
+
+    officialCount.textContent =
+        String(
+            official
+        );
+
+
+    approvedCount.textContent =
+        String(
+            approvedSubjects
+        );
+
+
+    if (
+        total >
+        0
+    ) {
+
+        summarySection
+            .classList
+            .remove(
+                "hidden"
+            );
+
+    } else {
+
+        summarySection
+            .classList
+            .add(
+                "hidden"
+            );
+    }
+}
+
+
+/* ============================================================
+   RENDERIZAÇÃO
    ============================================================ */
 
 function renderizarCandidatos() {
@@ -532,32 +1244,47 @@ function renderizarCandidatos() {
 
 
     if (
-        currentCandidates.length === 0
+        currentCandidates.length ===
+        0
     ) {
 
         candidateList.innerHTML =
             `
             <div class="empty">
-                Nenhuma prova analisada ainda.
+                Nenhuma prova foi analisada para este concurso.
+
+                <br><br>
+
+                Cole acima a URL pública de uma prova anterior.
             </div>
             `;
 
+
         atualizarResumo();
+
 
         return;
     }
 
 
     currentCandidates.sort(
-        function(a, b) {
+        function(
+            a,
+            b
+        ) {
 
             return (
+
                 Number(
-                    b.similarity_score || 0
+                    b.similarity_score ||
+                    0
                 )
+
                 -
+
                 Number(
-                    a.similarity_score || 0
+                    a.similarity_score ||
+                    0
                 )
             );
         }
@@ -567,156 +1294,10 @@ function renderizarCandidatos() {
     currentCandidates.forEach(
         function(candidate) {
 
-            const score =
-                Math.round(
-                    Number(
-                        candidate.similarity_score || 0
-                    )
-                );
-
-
-            let classificacao =
-                "⚪ Baixa similaridade";
-
-
-            if (score >= 85) {
-
-                classificacao =
-                    "🔥 Muito semelhante";
-
-            } else if (score >= 70) {
-
-                classificacao =
-                    "🟢 Semelhante";
-
-            } else if (score >= 55) {
-
-                classificacao =
-                    "🟡 Complementar";
-            }
-
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                "candidate";
-
-
-            card.innerHTML =
-                `
-                <div class="candidate-top">
-
-                    <div>
-
-                        <div class="candidate-title">
-                            ${candidate.title || "Prova anterior"}
-                        </div>
-
-                        <div class="candidate-meta">
-                            ${candidate.board || "Banca não identificada"}
-                            •
-                            ${candidate.position || "Cargo não identificado"}
-                            •
-                            ${candidate.exam_year || "Ano não identificado"}
-                        </div>
-
-                    </div>
-
-                    <div class="score">
-                        ${score}/100
-                    </div>
-
-                </div>
-
-
-                <div style="
-                    margin-top:12px;
-                    font-weight:bold;
-                ">
-                    ${classificacao}
-                </div>
-
-
-                <div class="tags">
-
-                    ${
-                        candidate.is_official
-                            ? '<span class="tag official">✅ Fonte oficial</span>'
-                            : ''
-                    }
-
-                    ${
-                        candidate.has_exam
-                            ? '<span class="tag">📄 Prova</span>'
-                            : ''
-                    }
-
-                    ${
-                        candidate.has_answer_key
-                            ? '<span class="tag">✅ Gabarito</span>'
-                            : ''
-                    }
-
-                    ${
-                        candidate.status === "approved"
-                            ? '<span class="tag official">👍 Aprovada</span>'
-                            : ''
-                    }
-
-                </div>
-
-
-                ${montarConteudo(candidate)}
-
-
-                <a
-                    class="link"
-                    href="${candidate.source_url}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    🔗 Abrir fonte original
-                </a>
-
-
-                <div class="actions">
-
-                    <button
-                        class="action-button approve"
-                        data-action="approve"
-                        data-id="${candidate.id}"
-                        ${
-                            candidate.status === "approved"
-                                ? "disabled"
-                                : ""
-                        }
-                    >
-                        ${
-                            candidate.status === "approved"
-                                ? "✅ Aprovada"
-                                : "✅ Aprovar para o Pareto"
-                        }
-                    </button>
-
-
-                    <button
-                        class="action-button reject"
-                        data-action="reject"
-                        data-id="${candidate.id}"
-                    >
-                        ❌ Descartar
-                    </button>
-
-                </div>
-                `;
-
-
             candidateList.appendChild(
-                card
+                criarCandidateCard(
+                    candidate
+                )
             );
         }
     );
@@ -727,7 +1308,7 @@ function renderizarCandidatos() {
 
 
 /* ============================================================
-   CARREGAR PROVAS ANALISADAS
+   CARREGAR PROVAS + MATÉRIAS
    ============================================================ */
 
 async function carregarCandidatos() {
@@ -741,7 +1322,9 @@ async function carregarCandidatos() {
         currentCandidates =
             [];
 
+
         renderizarCandidatos();
+
 
         return;
     }
@@ -754,10 +1337,6 @@ async function carregarCandidatos() {
         </div>
         `;
 
-
-    /* ========================================================
-       BUSCAR PROVAS
-       ======================================================== */
 
     const {
         data,
@@ -779,7 +1358,8 @@ async function carregarCandidatos() {
             .order(
                 "similarity_score",
                 {
-                    ascending: false
+                    ascending:
+                        false
                 }
             );
 
@@ -801,19 +1381,18 @@ async function carregarCandidatos() {
         currentCandidates =
             [];
 
+
         renderizarCandidatos();
+
 
         return;
     }
 
 
     currentCandidates =
-        data || [];
+        data ||
+        [];
 
-
-    /* ========================================================
-       BUSCAR MATÉRIAS DE CADA PROVA
-       ======================================================== */
 
     for (
         const candidate
@@ -822,7 +1401,8 @@ async function carregarCandidatos() {
 
         const {
             data: reviews,
-            error: reviewsError
+            error:
+                reviewsError
         } =
             await supabaseClient
 
@@ -853,16 +1433,18 @@ async function carregarCandidatos() {
                 .order(
                     "subject_name",
                     {
-                        ascending: true
+                        ascending:
+                            true
                     }
                 );
 
 
-        if (reviewsError) {
+        if (
+            reviewsError
+        ) {
 
             console.error(
-                "Erro ao carregar matérias do candidato:",
-                candidate.id,
+                "Erro ao carregar matérias:",
                 reviewsError
             );
 
@@ -872,25 +1454,16 @@ async function carregarCandidatos() {
 
         } else {
 
-            console.log(
-                "Matérias carregadas:",
-                candidate.id,
-                reviews
-            );
-
-
             candidate.subject_reviews =
-                reviews || [];
+                reviews ||
+                [];
         }
     }
 
 
-    /* ========================================================
-       MOSTRAR RESULTADOS
-       ======================================================== */
-
     renderizarCandidatos();
 }
+
 
 /* ============================================================
    ANALISAR URL
@@ -915,16 +1488,22 @@ async function analisarUrl() {
             "Selecione um concurso."
         );
 
+
         return;
     }
 
 
-    if (!urlValida(url)) {
+    if (
+        !urlValida(
+            url
+        )
+    ) {
 
         mostrarMensagem(
             "error",
-            "Informe uma URL válida."
+            "Informe uma URL pública válida."
         );
+
 
         return;
     }
@@ -969,7 +1548,11 @@ async function analisarUrl() {
 
         if (error) {
 
-            console.error(error);
+            console.error(
+                "Erro na Edge Function:",
+                error
+            );
+
 
             throw new Error(
                 error.message ||
@@ -980,7 +1563,8 @@ async function analisarUrl() {
 
         if (
             !data ||
-            data.ok !== true
+            data.ok !==
+            true
         ) {
 
             throw new Error(
@@ -992,14 +1576,25 @@ async function analisarUrl() {
 
         mostrarMensagem(
             "success",
+
             "✅ Prova analisada! " +
+
             Number(
-                data.subjects_found || 0
-            ) +
+                data.subjects_found ||
+                0
+            )
+
+            +
+
             " disciplina(s) e " +
+
             Number(
-                data.topics_found || 0
-            ) +
+                data.topics_found ||
+                0
+            )
+
+            +
+
             " assunto(s) identificados."
         );
 
@@ -1021,12 +1616,15 @@ async function analisarUrl() {
 
         mostrarMensagem(
             "error",
+
             "Erro ao analisar a prova: " +
+
             (
                 error?.message ||
                 "erro desconhecido"
             )
         );
+
 
     } finally {
 
@@ -1040,96 +1638,7 @@ async function analisarUrl() {
 
 
 /* ============================================================
-   APROVAR / DESCARTAR
-   ============================================================ */
-
-candidateList.addEventListener(
-    "click",
-    async function(event) {
-
-        const button =
-            event.target.closest(
-                "[data-action][data-id]"
-            );
-
-
-        if (!button) {
-
-            return;
-        }
-
-
-        const status =
-            button.dataset.action ===
-            "approve"
-                ? "approved"
-                : "rejected";
-
-
-        const {
-            error
-        } =
-            await supabaseClient
-
-                .from(
-                    "exam_research_candidates"
-                )
-
-                .update({
-                    status: status
-                })
-
-                .eq(
-                    "id",
-                    button.dataset.id
-                );
-
-
-        if (error) {
-
-            console.error(error);
-
-            mostrarMensagem(
-                "error",
-                "Não foi possível atualizar a prova."
-            );
-
-            return;
-        }
-
-
-        mostrarMensagem(
-            "success",
-            status === "approved"
-                ? "✅ Prova aprovada para o Pareto."
-                : "Prova descartada."
-        );
-
-
-        await carregarCandidatos();
-    }
-);
-/* ============================================================
-   NORMALIZAR TEXTO
-   ============================================================ */
-
-function normalizarTextoPareto(valor) {
-
-    return String(
-        valor || ""
-    )
-        .normalize("NFD")
-        .replace(
-            /[\u0300-\u036f]/g,
-            ""
-        )
-        .trim()
-        .toLowerCase();
-}
-
-
-/* ============================================================
-   LOCALIZAR DISCIPLINA DO NOSSO EDITAL
+   LOCALIZAR SUBJECT_ID
    ============================================================ */
 
 async function localizarSubjectId(
@@ -1138,6 +1647,12 @@ async function localizarSubjectId(
 
     const examId =
         examSelect.value;
+
+
+    const nomeNormalizado =
+        normalizarTextoPareto(
+            nomeMateria
+        );
 
 
     const {
@@ -1169,19 +1684,8 @@ async function localizarSubjectId(
 
     if (error) {
 
-        console.error(
-            "Erro ao localizar disciplina:",
-            error
-        );
-
         throw error;
     }
-
-
-    const nomeNormalizado =
-        normalizarTextoPareto(
-            nomeMateria
-        );
 
 
     for (
@@ -1190,14 +1694,18 @@ async function localizarSubjectId(
     ) {
 
         const subject =
+
             Array.isArray(
                 item.subject
             )
+
                 ? item.subject[0]
+
                 : item.subject;
 
 
         if (!subject) {
+
             continue;
         }
 
@@ -1205,7 +1713,10 @@ async function localizarSubjectId(
         if (
             normalizarTextoPareto(
                 subject.name
-            ) ===
+            )
+
+            ===
+
             nomeNormalizado
         ) {
 
@@ -1214,25 +1725,25 @@ async function localizarSubjectId(
     }
 
 
-    /*
-     * Se o nome histórico for um pouco diferente,
-     * fazemos uma segunda tentativa no catálogo.
-     */
-
     const {
         data: subjects,
-        error: subjectError
+        error:
+            subjectError
     } =
         await supabaseClient
 
-            .from("subjects")
+            .from(
+                "subjects"
+            )
 
             .select(
                 "id, name"
             );
 
 
-    if (subjectError) {
+    if (
+        subjectError
+    ) {
 
         throw subjectError;
     }
@@ -1244,24 +1755,28 @@ async function localizarSubjectId(
                 function(subject) {
 
                     return (
+
                         normalizarTextoPareto(
                             subject.name
                         )
+
                         ===
+
                         nomeNormalizado
                     );
                 }
             );
 
 
-    return encontrado
-        ?.id ||
-        null;
+    return (
+        encontrado?.id ||
+        null
+    );
 }
 
 
 /* ============================================================
-   CRIAR OU REUTILIZAR PROVA HISTÓRICA
+   CRIAR / REUTILIZAR PAST_EXAM
    ============================================================ */
 
 async function obterPastExam(
@@ -1269,7 +1784,8 @@ async function obterPastExam(
 ) {
 
     const {
-        data: sessionData
+        data:
+            sessionData
     } =
         await supabaseClient
             .auth
@@ -1291,14 +1807,11 @@ async function obterPastExam(
     }
 
 
-    /*
-     * Procura se essa URL já foi
-     * transformada em prova histórica.
-     */
-
     const {
-        data: existing,
-        error: searchError
+        data:
+            existing,
+        error:
+            searchError
     } =
         await supabaseClient
 
@@ -1320,34 +1833,39 @@ async function obterPastExam(
                 candidate.source_url
             )
 
-            .limit(1)
+            .limit(
+                1
+            )
+
             .maybeSingle();
 
 
-    if (searchError) {
+    if (
+        searchError
+    ) {
 
         throw searchError;
     }
 
 
-    if (existing) {
+    if (
+        existing
+    ) {
 
         return existing.id;
     }
 
 
-    /*
-     * Soma o total de questões identificadas
-     * nas matérias da prova.
-     */
-
     const subjects =
+
         Array.isArray(
             candidate
                 ?.source_metadata
                 ?.subjects
         )
+
             ? candidate.source_metadata.subjects
+
             : [];
 
 
@@ -1359,7 +1877,11 @@ async function obterPastExam(
             ) {
 
                 return (
-                    total +
+
+                    total
+
+                    +
+
                     Number(
                         subject
                             ?.question_count ||
@@ -1372,8 +1894,10 @@ async function obterPastExam(
 
 
     const {
-        data: created,
-        error: insertError
+        data:
+            created,
+        error:
+            insertError
     } =
         await supabaseClient
 
@@ -1416,8 +1940,12 @@ async function obterPastExam(
                         null,
 
                     total_questions:
-                        totalQuestions > 0
+
+                        totalQuestions >
+                        0
+
                             ? totalQuestions
+
                             : null,
 
                     source_name:
@@ -1442,7 +1970,9 @@ async function obterPastExam(
             .single();
 
 
-    if (insertError) {
+    if (
+        insertError
+    ) {
 
         throw insertError;
     }
@@ -1453,7 +1983,7 @@ async function obterPastExam(
 
 
 /* ============================================================
-   LOCALIZAR MATÉRIA NA ANÁLISE DA IA
+   LOCALIZAR MATÉRIA ANALISADA
    ============================================================ */
 
 function localizarMateriaAnalisada(
@@ -1462,42 +1992,55 @@ function localizarMateriaAnalisada(
 ) {
 
     const subjects =
+
         Array.isArray(
             candidate
                 ?.source_metadata
                 ?.subjects
         )
+
             ? candidate.source_metadata.subjects
+
             : [];
 
 
     const target =
         normalizarTextoPareto(
-            review.normalized_subject_name ||
-            review.subject_name
+            review
+                .normalized_subject_name
+            ||
+            review
+                .subject_name
         );
 
 
     return (
+
         subjects.find(
             function(subject) {
 
                 return (
+
                     normalizarTextoPareto(
                         subject.name
-                    ) ===
+                    )
+
+                    ===
+
                     target
                 );
             }
         )
+
         ||
+
         null
     );
 }
 
 
 /* ============================================================
-   IMPORTAR MATÉRIA PARA BASE HISTÓRICA
+   IMPORTAR MATÉRIA HISTÓRICA
    ============================================================ */
 
 async function importarMateriaHistorica(
@@ -1515,8 +2058,11 @@ async function importarMateriaHistorica(
     if (!subjectId) {
 
         throw new Error(
+
             "Não encontrei '" +
+
             review.subject_name +
+
             "' entre as disciplinas cadastradas."
         );
     }
@@ -1529,11 +2075,16 @@ async function importarMateriaHistorica(
         );
 
 
-    if (!analyzedSubject) {
+    if (
+        !analyzedSubject
+    ) {
 
         throw new Error(
+
             "Não encontrei os assuntos de '" +
+
             review.subject_name +
+
             "' na análise da prova."
         );
     }
@@ -1546,23 +2097,19 @@ async function importarMateriaHistorica(
 
 
     const topics =
+
         Array.isArray(
             analyzedSubject.topics
         )
+
             ? analyzedSubject.topics
+
             : [];
 
 
-    /*
-     * Remove a versão anterior somente
-     * dessa matéria/revisão.
-     *
-     * Isso permite mudar de aprovado para
-     * aprovado com ressalva sem duplicações.
-     */
-
     const {
-        error: deleteError
+        error:
+            deleteError
     } =
         await supabaseClient
 
@@ -1578,19 +2125,11 @@ async function importarMateriaHistorica(
             );
 
 
-    if (deleteError) {
-
-        throw deleteError;
-    }
-
-
     if (
-        topics.length === 0
+        deleteError
     ) {
 
-        throw new Error(
-            "Nenhum assunto classificado foi encontrado para esta matéria."
-        );
+        throw deleteError;
     }
 
 
@@ -1601,12 +2140,20 @@ async function importarMateriaHistorica(
                 function(topic) {
 
                     return (
-                        topic &&
-                        topic.name &&
+
+                        topic
+
+                        &&
+
+                        topic.name
+
+                        &&
+
                         Number(
                             topic.question_count ||
                             0
-                        ) > 0
+                        ) >
+                        0
                     );
                 }
             )
@@ -1651,7 +2198,8 @@ async function importarMateriaHistorica(
 
 
     if (
-        rows.length === 0
+        rows.length ===
+        0
     ) {
 
         throw new Error(
@@ -1661,7 +2209,8 @@ async function importarMateriaHistorica(
 
 
     const {
-        error: insertError
+        error:
+            insertError
     } =
         await supabaseClient
 
@@ -1674,7 +2223,9 @@ async function importarMateriaHistorica(
             );
 
 
-    if (insertError) {
+    if (
+        insertError
+    ) {
 
         throw insertError;
     }
@@ -1685,7 +2236,7 @@ async function importarMateriaHistorica(
 
 
 /* ============================================================
-   REMOVER MATÉRIA DA BASE HISTÓRICA
+   REMOVER MATÉRIA HISTÓRICA
    ============================================================ */
 
 async function removerMateriaHistorica(
@@ -1709,13 +2260,17 @@ async function removerMateriaHistorica(
             );
 
 
-    if (error) {
+    if (
+        error
+    ) {
 
         throw error;
     }
 }
+
+
 /* ============================================================
-   APROVAÇÃO POR MATÉRIA
+   CLIQUES DAS MATÉRIAS
    ============================================================ */
 
 candidateList.addEventListener(
@@ -1742,11 +2297,6 @@ candidateList.addEventListener(
             button.dataset.subjectAction;
 
 
-        /*
-         * Descobre a prova e a matéria
-         * correspondentes ao botão clicado.
-         */
-
         let candidateEncontrado =
             null;
 
@@ -1761,10 +2311,13 @@ candidateList.addEventListener(
         ) {
 
             const reviews =
+
                 Array.isArray(
                     candidate.subject_reviews
                 )
+
                     ? candidate.subject_reviews
+
                     : [];
 
 
@@ -1780,13 +2333,17 @@ candidateList.addEventListener(
                 );
 
 
-            if (review) {
+            if (
+                review
+            ) {
 
                 candidateEncontrado =
                     candidate;
 
+
                 reviewEncontrado =
                     review;
+
 
                 break;
             }
@@ -1802,6 +2359,7 @@ candidateList.addEventListener(
                 "error",
                 "Não foi possível identificar a matéria selecionada."
             );
+
 
             return;
         }
@@ -1841,10 +2399,6 @@ candidateList.addEventListener(
 
         try {
 
-            /*
-             * APROVADA OU APROVADA COM RESSALVA
-             */
-
             if (
                 action ===
                 "approved"
@@ -1867,7 +2421,8 @@ candidateList.addEventListener(
 
 
                 const {
-                    error: updateError
+                    error:
+                        updateError
                 } =
                     await supabaseClient
 
@@ -1900,7 +2455,9 @@ candidateList.addEventListener(
                         );
 
 
-                if (updateError) {
+                if (
+                    updateError
+                ) {
 
                     throw updateError;
                 }
@@ -1915,11 +2472,16 @@ candidateList.addEventListener(
                         "success",
 
                         "✅ " +
+
                         reviewEncontrado.subject_name +
+
                         " aprovada. " +
+
                         importedTopics +
+
                         " assunto(s) adicionados à base Pareto."
                     );
+
 
                 } else {
 
@@ -1927,18 +2489,18 @@ candidateList.addEventListener(
                         "success",
 
                         "⚠️ " +
+
                         reviewEncontrado.subject_name +
+
                         " aprovada com ressalva. " +
+
                         importedTopics +
+
                         " assunto(s) adicionados com peso 0,50."
                     );
                 }
             }
 
-
-            /*
-             * DESCARTADA
-             */
 
             else if (
                 action ===
@@ -1951,7 +2513,8 @@ candidateList.addEventListener(
 
 
                 const {
-                    error: rejectError
+                    error:
+                        rejectError
                 } =
                     await supabaseClient
 
@@ -1983,7 +2546,9 @@ candidateList.addEventListener(
                         );
 
 
-                if (rejectError) {
+                if (
+                    rejectError
+                ) {
 
                     throw rejectError;
                 }
@@ -1993,7 +2558,9 @@ candidateList.addEventListener(
                     "success",
 
                     "❌ " +
+
                     reviewEncontrado.subject_name +
+
                     " foi retirada da base Pareto."
                 );
             }
@@ -2014,8 +2581,11 @@ candidateList.addEventListener(
                 "error",
 
                 "Erro ao processar " +
+
                 reviewEncontrado.subject_name +
+
                 ": " +
+
                 (
                     error?.message ||
                     "erro desconhecido"
@@ -2030,155 +2600,6 @@ candidateList.addEventListener(
 );
 
 
-        if (!button) {
-
-            return;
-        }
-
-
-        const reviewId =
-            button.dataset.reviewId;
-
-
-        const action =
-            button.dataset.subjectAction;
-
-
-        let statisticalWeight =
-            0;
-
-
-        if (
-            action ===
-            "approved"
-        ) {
-
-            statisticalWeight =
-                1;
-        }
-
-
-        if (
-            action ===
-            "approved_partial"
-        ) {
-
-            statisticalWeight =
-                0.5;
-        }
-
-
-        const approvedAt =
-
-            action ===
-            "rejected"
-
-                ? null
-
-                : new Date()
-                    .toISOString();
-
-
-        button.disabled =
-            true;
-
-
-        button.textContent =
-            "Salvando...";
-
-
-        const {
-            error
-        } =
-            await supabaseClient
-
-                .from(
-                    "past_exam_subject_reviews"
-                )
-
-                .update(
-                    {
-
-                        status:
-                            action,
-
-                        statistical_weight:
-                            statisticalWeight,
-
-                        approved_at:
-                            approvedAt,
-
-                        updated_at:
-                            new Date()
-                                .toISOString()
-                    }
-                )
-
-                .eq(
-                    "id",
-                    reviewId
-                );
-
-
-        if (error) {
-
-            console.error(
-                "Erro ao atualizar matéria:",
-                error
-            );
-
-
-            mostrarMensagem(
-                "error",
-                "Não foi possível atualizar a matéria."
-            );
-
-
-            button.disabled =
-                false;
-
-
-            return;
-        }
-
-
-        if (
-            action ===
-            "approved"
-        ) {
-
-            mostrarMensagem(
-                "success",
-                "✅ Matéria aprovada para o Pareto."
-            );
-        }
-
-
-        else if (
-            action ===
-            "approved_partial"
-        ) {
-
-            mostrarMensagem(
-                "success",
-                "⚠️ Matéria aprovada com peso estatístico reduzido."
-            );
-        }
-
-
-        else {
-
-            mostrarMensagem(
-                "success",
-                "❌ Matéria descartada da estatística."
-            );
-        }
-
-
-        await carregarCandidatos();
-    }
-);
-
 /* ============================================================
    EVENTOS
    ============================================================ */
@@ -2189,7 +2610,9 @@ examSelect.addEventListener(
 
         limparMensagem();
 
+
         atualizarBotaoAnalise();
+
 
         await carregarCandidatos();
     }
@@ -2225,6 +2648,7 @@ async function iniciarPagina() {
 
 
     await carregarConcursos();
+
 
     atualizarBotaoAnalise();
 }
