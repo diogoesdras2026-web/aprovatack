@@ -728,7 +728,25 @@ function montarConteudo(
 
 
                     ${avisoCobertura}
-
+${
+    coverage < 85
+        ? `
+        <div style="margin-top:12px;">
+            <button
+                type="button"
+                class="action-button"
+                style="
+                    background:#7c3aed;
+                    color:white;
+                "
+                data-refine-review-id="${review.id}"
+            >
+                🎯 Refinar questão por questão
+            </button>
+        </div>
+        `
+        : ""
+}
 
                     <div
                         style="
