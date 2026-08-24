@@ -553,19 +553,15 @@ function montarConteudo(
 ) {
 
     const reviews =
-
         Array.isArray(
             candidate.subject_reviews
         )
-
             ? candidate.subject_reviews
-
             : [];
 
 
     if (
-        reviews.length ===
-        0
+        reviews.length === 0
     ) {
 
         return `
@@ -614,6 +610,43 @@ function montarConteudo(
             const status =
                 review.status ||
                 "pending";
+
+
+            const podeAprovar =
+                coverage >= 85;
+
+
+            const podeRessalva =
+                coverage >= 70 &&
+                coverage < 85;
+
+
+            let avisoCobertura =
+                "";
+
+
+            if (
+                coverage < 70
+            ) {
+
+                avisoCobertura =
+                    `
+                    <div
+                        style="
+                            margin-top:10px;
+                            padding:10px;
+                            border-radius:8px;
+                            background:#fef2f2;
+                            color:#991b1b;
+                            font-size:13px;
+                            line-height:1.5;
+                        "
+                    >
+                        A classificação quantitativa desta matéria
+                        não é confiável o suficiente para entrar no Pareto.
+                    </div>
+                    `;
+            }
 
 
             html +=
@@ -671,6 +704,9 @@ function montarConteudo(
                     </div>
 
 
+                    ${avisoCobertura}
+
+
                     <div
                         style="
                             display:flex;
@@ -679,49 +715,25 @@ function montarConteudo(
                             margin-top:12px;
                         "
                     >
-<button
-    type="button"
-    class="action-button approve"
-    data-subject-action="approved"
-    data-review-id="${review.id}"
-    ${
-        coverage < 85 ||
-        status === "approved"
 
-            ? "disabled"
-
-            : ""
-    }
->
-    ${
-        status === "approved"
-
-            ? "✅ Aprovada"
-
-            : coverage < 85
-
-                ? "🔒 Cobertura insuficiente"
-
-                : "✅ Aprovar"
-    }
-</button>
+                        <button
+                            type="button"
+                            class="action-button approve"
+                            data-subject-action="approved"
                             data-review-id="${review.id}"
                             ${
-                                status ===
-                                "approved"
-
+                                !podeAprovar ||
+                                status === "approved"
                                     ? "disabled"
-
                                     : ""
                             }
                         >
                             ${
-                                status ===
-                                "approved"
-
+                                status === "approved"
                                     ? "✅ Aprovada"
-
-                                    : "✅ Aprovar"
+                                    : podeAprovar
+                                        ? "✅ Aprovar"
+                                        : "🔒 Cobertura insuficiente"
                             }
                         </button>
 
@@ -736,21 +748,18 @@ function montarConteudo(
                             data-subject-action="approved_partial"
                             data-review-id="${review.id}"
                             ${
-                                status ===
-                                "approved_partial"
-
+                                !podeRessalva ||
+                                status === "approved_partial"
                                     ? "disabled"
-
                                     : ""
                             }
                         >
                             ${
-                                status ===
-                                "approved_partial"
-
+                                status === "approved_partial"
                                     ? "⚠️ Aprovada com ressalva"
-
-                                    : "⚠️ Aprovar com ressalva"
+                                    : podeRessalva
+                                        ? "⚠️ Aprovar com ressalva"
+                                        : "🔒 Ressalva indisponível"
                             }
                         </button>
 
@@ -761,20 +770,14 @@ function montarConteudo(
                             data-subject-action="rejected"
                             data-review-id="${review.id}"
                             ${
-                                status ===
-                                "rejected"
-
+                                status === "rejected"
                                     ? "disabled"
-
                                     : ""
                             }
                         >
                             ${
-                                status ===
-                                "rejected"
-
+                                status === "rejected"
                                     ? "❌ Descartada"
-
                                     : "❌ Descartar"
                             }
                         </button>
@@ -793,7 +796,6 @@ function montarConteudo(
 
     return html;
 }
-
 
 /* ============================================================
    CARD DA PROVA
