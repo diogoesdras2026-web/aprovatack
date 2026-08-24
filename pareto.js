@@ -3,9 +3,10 @@
    ============================================================ */
 
 const SUPABASE_URL =
- "https://axxgqacfyrzgpgmqjxbp.supabase.co";
+    "https://axxgqacfyrzgpgmqjxbp.supabase.co";
+
 const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
+    "sb_publishable_A9ALAeK0ECKMwfrsMH_62g_x-viRpGK";
 
 
 const supabaseClient =
@@ -225,15 +226,12 @@ async function carregarConcursos() {
         error
     } =
         await supabaseClient
-
             .from(
                 "exams"
             )
-
             .select(
                 "id, name, position"
             )
-
             .order(
                 "created_at",
                 {
@@ -260,12 +258,25 @@ async function carregarConcursos() {
             "Não foi possível carregar seus concursos."
         );
 
+        return;
+    }
+
+
+    if (
+        !data ||
+        data.length === 0
+    ) {
+
+        mostrarMensagem(
+            "info",
+            "Cadastre um concurso antes de usar o Modo Pareto."
+        );
 
         return;
     }
 
 
-    (data || []).forEach(
+    data.forEach(
         function(exam) {
 
             const option =
@@ -279,13 +290,12 @@ async function carregarConcursos() {
 
 
             option.textContent =
-
                 exam.position
-
-                    ? exam.name +
-                      " — " +
-                      exam.position
-
+                    ? (
+                        exam.name +
+                        " — " +
+                        exam.position
+                    )
                     : exam.name;
 
 
@@ -294,42 +304,82 @@ async function carregarConcursos() {
             );
         }
     );
+
+
+    if (
+        data.length === 1
+    ) {
+
+        examSelect.value =
+            data[0].id;
+
+
+        await carregarCandidatos();
+    }
+
+
+    atualizarBotaoAnalise();
 }
 
 
 /* ============================================================
-   COBERTURA
+   BADGE DE COBERTURA
    ============================================================ */
 
 function badgeCobertura(
     coverage
 ) {
 
-    const value =
+    const valor =
         Number(
             coverage || 0
         );
 
 
     if (
-        value >=
-        85
+        valor >= 85
     ) {
 
-        return "✅ Excelente";
+        return `
+            <span
+                style="
+                    color:#166534;
+                    font-weight:bold;
+                "
+            >
+                🟢 Excelente
+            </span>
+        `;
     }
 
 
     if (
-        value >=
-        70
+        valor >= 70
     ) {
 
-        return "⚠️ Parcial";
+        return `
+            <span
+                style="
+                    color:#b45309;
+                    font-weight:bold;
+                "
+            >
+                🟡 Parcial
+            </span>
+        `;
     }
 
 
-    return "🔴 Baixa cobertura";
+    return `
+        <span
+            style="
+                color:#b91c1c;
+                font-weight:bold;
+            "
+        >
+            🔴 Baixa cobertura
+        </span>
+    `;
 }
 
 
@@ -348,24 +398,30 @@ function getScoreClass(
 
 
     if (
-        value >=
-        85
+        value >= 85
     ) {
 
-        return "score-high";
+        return "very-high";
     }
 
 
     if (
-        value >=
-        70
+        value >= 70
     ) {
 
-        return "score-medium";
+        return "high";
     }
 
 
-    return "score-low";
+    if (
+        value >= 55
+    ) {
+
+        return "medium";
+    }
+
+
+    return "low";
 }
 
 
@@ -380,33 +436,30 @@ function getScoreLabel(
 
 
     if (
-        value >=
-        85
+        value >= 85
     ) {
 
-        return "🔥 Muito semelhante";
+        return "Muito semelhante";
     }
 
 
     if (
-        value >=
-        70
+        value >= 70
     ) {
 
-        return "🟢 Semelhante";
+        return "Semelhante";
     }
 
 
     if (
-        value >=
-        55
+        value >= 55
     ) {
 
-        return "🟡 Complementar";
+        return "Complementar";
     }
 
 
-    return "⚪ Baixa similaridade";
+    return "Baixa similaridade";
 }
 
 
@@ -543,7 +596,6 @@ function criarRazoes(
     return container;
 }
 
-
 /* ============================================================
    APROVAÇÃO POR MATÉRIA
    ============================================================ */
@@ -560,34 +612,15 @@ function montarConteudo(
             : [];
 
 
+    /* --------------------------------------------------------
+       NENHUMA MATÉRIA ENCONTRADA
+       -------------------------------------------------------- */
+
     if (
         reviews.length === 0
     ) {
 
         return `
-        ${
-    coverage < 85
-
-        ? `
-        <div style="margin-top:12px;">
-
-            <button
-                type="button"
-                class="action-button"
-                style="
-                    background:#7c3aed;
-                    color:white;
-                "
-                data-refine-review-id="${review.id}"
-            >
-                🎯 Refinar questão por questão
-            </button>
-
-        </div>
-        `
-
-        : ""
-}
             <div
                 style="
                     margin-top:16px;
@@ -602,6 +635,10 @@ function montarConteudo(
         `;
     }
 
+
+    /* --------------------------------------------------------
+       CABEÇALHO DA ÁREA DE MATÉRIAS
+       -------------------------------------------------------- */
 
     let html =
         `
@@ -620,6 +657,10 @@ function montarConteudo(
         `;
 
 
+    /* --------------------------------------------------------
+       PERCORRER MATÉRIAS
+       -------------------------------------------------------- */
+
     reviews.forEach(
         function(review) {
 
@@ -635,6 +676,10 @@ function montarConteudo(
                 "pending";
 
 
+            /* =================================================
+               REGRAS DE APROVAÇÃO
+               ================================================= */
+
             const podeAprovar =
                 coverage >= 85;
 
@@ -643,6 +688,14 @@ function montarConteudo(
                 coverage >= 70 &&
                 coverage < 85;
 
+
+            const podeRefinar =
+                coverage < 85;
+
+
+            /* =================================================
+               AVISO DE COBERTURA BAIXA
+               ================================================= */
 
             let avisoCobertura =
                 "";
@@ -666,11 +719,56 @@ function montarConteudo(
                         "
                     >
                         A classificação quantitativa desta matéria
-                        não é confiável o suficiente para entrar no Pareto.
+                        ainda não é confiável o suficiente para
+                        entrar no Pareto.
+
+                        Use o refinamento questão por questão
+                        antes de aprovar.
                     </div>
                     `;
             }
 
+
+            /* =================================================
+               BOTÃO DE REFINAMENTO
+               ================================================= */
+
+            let botaoRefinamento =
+                "";
+
+
+            if (
+                podeRefinar
+            ) {
+
+                botaoRefinamento =
+                    `
+                    <div
+                        style="
+                            margin-top:12px;
+                        "
+                    >
+
+                        <button
+                            type="button"
+                            class="action-button"
+                            style="
+                                background:#7c3aed;
+                                color:white;
+                            "
+                            data-refine-review-id="${review.id}"
+                        >
+                            🎯 Refinar questão por questão
+                        </button>
+
+                    </div>
+                    `;
+            }
+
+
+            /* =================================================
+               CARD DA MATÉRIA
+               ================================================= */
 
             html +=
                 `
@@ -704,14 +802,20 @@ function montarConteudo(
 
                         Questões da matéria:
                         <strong>
-                            ${review.question_count}
+                            ${Number(
+                                review.question_count ||
+                                0
+                            )}
                         </strong>
 
                         <br>
 
                         Questões classificadas:
                         <strong>
-                            ${review.classified_questions}
+                            ${Number(
+                                review.classified_questions ||
+                                0
+                            )}
                         </strong>
 
                         <br>
@@ -722,31 +826,19 @@ function montarConteudo(
                         </strong>
 
                         —
-                        ${badgeCobertura(coverage)}
+
+                        ${badgeCobertura(
+                            coverage
+                        )}
 
                     </div>
 
 
                     ${avisoCobertura}
-${
-    coverage < 85
-        ? `
-        <div style="margin-top:12px;">
-            <button
-                type="button"
-                class="action-button"
-                style="
-                    background:#7c3aed;
-                    color:white;
-                "
-                data-refine-review-id="${review.id}"
-            >
-                🎯 Refinar questão por questão
-            </button>
-        </div>
-        `
-        : ""
-}
+
+
+                    ${botaoRefinamento}
+
 
                     <div
                         style="
@@ -756,6 +848,10 @@ ${
                             margin-top:12px;
                         "
                     >
+
+                        <!-- ===================================
+                             APROVAR
+                             =================================== -->
 
                         <button
                             type="button"
@@ -778,6 +874,10 @@ ${
                             }
                         </button>
 
+
+                        <!-- ===================================
+                             APROVAR COM RESSALVA
+                             =================================== -->
 
                         <button
                             type="button"
@@ -804,6 +904,10 @@ ${
                             }
                         </button>
 
+
+                        <!-- ===================================
+                             DESCARTAR
+                             =================================== -->
 
                         <button
                             type="button"
@@ -837,7 +941,6 @@ ${
 
     return html;
 }
-
 /* ============================================================
    CARD DA PROVA
    ============================================================ */
@@ -1168,8 +1271,6 @@ function criarCandidateCard(
 
     return container;
 }
-
-
 /* ============================================================
    RESUMO
    ============================================================ */
@@ -1458,6 +1559,10 @@ async function carregarCandidatos() {
         [];
 
 
+    /* ========================================================
+       CARREGAR AS MATÉRIAS DE CADA PROVA
+       ======================================================== */
+
     for (
         const candidate
         of currentCandidates
@@ -1527,8 +1632,6 @@ async function carregarCandidatos() {
 
     renderizarCandidatos();
 }
-
-
 /* ============================================================
    ANALISAR URL
    ============================================================ */
@@ -1627,8 +1730,7 @@ async function analisarUrl() {
 
         if (
             !data ||
-            data.ok !==
-            true
+            data.ok !== true
         ) {
 
             throw new Error(
@@ -1699,8 +1801,6 @@ async function analisarUrl() {
         atualizarBotaoAnalise();
     }
 }
-
-
 /* ============================================================
    LOCALIZAR SUBJECT_ID
    ============================================================ */
@@ -1910,9 +2010,8 @@ async function localizarSubjectId(
 
     return null;
 }
-
 /* ============================================================
-   CRIAR / REUTILIZAR PAST_EXAM
+   OBTER OU CRIAR PROVA HISTÓRICA
    ============================================================ */
 
 async function obterPastExam(
@@ -1920,34 +2019,36 @@ async function obterPastExam(
 ) {
 
     const {
-        data:
-            sessionData
+        data: userData,
+        error: userError
     } =
         await supabaseClient
             .auth
-            .getSession();
+            .getUser();
 
 
-    const userId =
-        sessionData
-            ?.session
-            ?.user
-            ?.id;
-
-
-    if (!userId) {
+    if (
+        userError ||
+        !userData?.user
+    ) {
 
         throw new Error(
-            "Usuário não identificado."
+            "Usuário não autenticado."
         );
     }
 
 
+    const userId =
+        userData.user.id;
+
+
+    /* ========================================================
+       TENTAR REUTILIZAR PROVA JÁ CADASTRADA
+       ======================================================== */
+
     const {
-        data:
-            existing,
-        error:
-            searchError
+        data: existing,
+        error: existingError
     } =
         await supabaseClient
 
@@ -1969,38 +2070,48 @@ async function obterPastExam(
                 candidate.source_url
             )
 
-            .limit(
-                1
-            )
-
             .maybeSingle();
 
 
     if (
-        searchError
+        existingError
     ) {
 
-        throw searchError;
+        throw existingError;
     }
 
 
     if (
-        existing
+        existing?.id
     ) {
 
-        return existing.id;
+        return {
+            id:
+                existing.id
+        };
     }
 
 
-    const subjects =
+    /* ========================================================
+       CALCULAR TOTAL DE QUESTÕES
+       ======================================================== */
 
+    const metadata =
+        candidate.source_metadata &&
+        typeof candidate.source_metadata ===
+            "object"
+
+            ? candidate.source_metadata
+
+            : {};
+
+
+    const subjects =
         Array.isArray(
-            candidate
-                ?.source_metadata
-                ?.subjects
+            metadata.subjects
         )
 
-            ? candidate.source_metadata.subjects
+            ? metadata.subjects
 
             : [];
 
@@ -2013,14 +2124,10 @@ async function obterPastExam(
             ) {
 
                 return (
-
-                    total
-
-                    +
+                    total +
 
                     Number(
-                        subject
-                            ?.question_count ||
+                        subject?.question_count ||
                         0
                     )
                 );
@@ -2029,11 +2136,13 @@ async function obterPastExam(
         );
 
 
+    /* ========================================================
+       CRIAR PROVA HISTÓRICA
+       ======================================================== */
+
     const {
-        data:
-            created,
-        error:
-            insertError
+        data: created,
+        error: createError
     } =
         await supabaseClient
 
@@ -2043,13 +2152,12 @@ async function obterPastExam(
 
             .insert(
                 {
-
                     user_id:
                         userId,
 
                     board:
                         candidate.board ||
-                        "Não identificada",
+                        "Não informada",
 
                     organization:
                         candidate.organization ||
@@ -2076,12 +2184,8 @@ async function obterPastExam(
                         null,
 
                     total_questions:
-
-                        totalQuestions >
-                        0
-
+                        totalQuestions > 0
                             ? totalQuestions
-
                             : null,
 
                     source_name:
@@ -2092,10 +2196,10 @@ async function obterPastExam(
                         candidate.source_url,
 
                     verified:
-                        true,
+                        false,
 
                     notes:
-                        "Importada pelo Modo Pareto do AprovaTrack."
+                        "Importada pelo Modo Pareto"
                 }
             )
 
@@ -2107,76 +2211,18 @@ async function obterPastExam(
 
 
     if (
-        insertError
+        createError
     ) {
 
-        throw insertError;
+        throw createError;
     }
 
 
-    return created.id;
+    return created;
 }
-
-
-/* ============================================================
-   LOCALIZAR MATÉRIA ANALISADA
-   ============================================================ */
-
-function localizarMateriaAnalisada(
-    candidate,
-    review
-) {
-
-    const subjects =
-
-        Array.isArray(
-            candidate
-                ?.source_metadata
-                ?.subjects
-        )
-
-            ? candidate.source_metadata.subjects
-
-            : [];
-
-
-    const target =
-        normalizarTextoPareto(
-            review
-                .normalized_subject_name
-            ||
-            review
-                .subject_name
-        );
-
-
-    return (
-
-        subjects.find(
-            function(subject) {
-
-                return (
-
-                    normalizarTextoPareto(
-                        subject.name
-                    )
-
-                    ===
-
-                    target
-                );
-            }
-        )
-
-        ||
-
-        null
-    );
-}
-
-
 /* ============================================================
    IMPORTAR MATÉRIA HISTÓRICA
+   FONTE: CLASSIFICAÇÃO INDIVIDUAL DAS QUESTÕES
    ============================================================ */
 
 async function importarMateriaHistorica(
@@ -2184,6 +2230,10 @@ async function importarMateriaHistorica(
     review,
     statisticalWeight
 ) {
+
+    /* ========================================================
+       1. LOCALIZAR DISCIPLINA DO EDITAL ATUAL
+       ======================================================== */
 
     const subjectId =
         await localizarSubjectId(
@@ -2194,58 +2244,339 @@ async function importarMateriaHistorica(
     if (!subjectId) {
 
         throw new Error(
-
             "Não encontrei '" +
-
             review.subject_name +
-
             "' entre as disciplinas cadastradas."
         );
     }
 
 
-    const analyzedSubject =
-        localizarMateriaAnalisada(
-            candidate,
-            review
-        );
+    /* ========================================================
+       2. OBTER OU CRIAR PROVA HISTÓRICA
+       ======================================================== */
 
-
-    if (
-        !analyzedSubject
-    ) {
-
-        throw new Error(
-
-            "Não encontrei os assuntos de '" +
-
-            review.subject_name +
-
-            "' na análise da prova."
-        );
-    }
-
-
-    const pastExamId =
+    const pastExam =
         await obterPastExam(
             candidate
         );
 
 
-    const topics =
+    const pastExamId =
+        typeof pastExam === "object"
+            ? pastExam.id
+            : pastExam;
 
-        Array.isArray(
-            analyzedSubject.topics
-        )
 
-            ? analyzedSubject.topics
+    if (!pastExamId) {
 
-            : [];
+        throw new Error(
+            "Não foi possível identificar a prova histórica."
+        );
+    }
 
+
+    /* ========================================================
+       3. BUSCAR CLASSIFICAÇÕES INDIVIDUAIS
+       ======================================================== */
 
     const {
-        error:
-            deleteError
+        data: classifications,
+        error: classificationsError
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exam_question_classifications"
+            )
+
+            .select(
+                `
+                id,
+                question_number,
+                topic_name,
+                normalized_topic_name,
+                confidence,
+                verified
+                `
+            )
+
+            .eq(
+                "subject_review_id",
+                review.id
+            )
+
+            .order(
+                "question_number",
+                {
+                    ascending:
+                        true
+                }
+            );
+
+
+    if (
+        classificationsError
+    ) {
+
+        throw classificationsError;
+    }
+
+
+    if (
+        !classifications ||
+        classifications.length === 0
+    ) {
+
+        throw new Error(
+            "Nenhuma classificação individual foi encontrada para esta matéria. Use primeiro o refinamento questão por questão."
+        );
+    }
+
+
+    /* ========================================================
+       4. CONFERIR QUANTIDADE DE QUESTÕES
+       ======================================================== */
+
+    const expectedQuestions =
+        Number(
+            review.question_count ||
+            0
+        );
+
+
+    if (
+        expectedQuestions <= 0
+    ) {
+
+        throw new Error(
+            "A quantidade de questões da matéria é inválida."
+        );
+    }
+
+
+    if (
+        classifications.length !==
+        expectedQuestions
+    ) {
+
+        throw new Error(
+            "A matéria possui " +
+            expectedQuestions +
+            " questões, mas somente " +
+            classifications.length +
+            " classificações individuais foram encontradas. A importação foi bloqueada."
+        );
+    }
+
+
+    /* ========================================================
+       5. CONFERIR NÚMEROS REPETIDOS
+       ======================================================== */
+
+    const questionNumbers =
+        classifications.map(
+            function(item) {
+
+                return Number(
+                    item.question_number
+                );
+            }
+        );
+
+
+    const uniqueQuestionNumbers =
+        new Set(
+            questionNumbers
+        );
+
+
+    if (
+        uniqueQuestionNumbers.size !==
+        classifications.length
+    ) {
+
+        throw new Error(
+            "Foram encontradas questões repetidas na classificação. A importação foi bloqueada."
+        );
+    }
+
+
+    /* ========================================================
+       6. VALIDAR ASSUNTOS
+       ======================================================== */
+
+    const invalidClassification =
+        classifications.find(
+            function(item) {
+
+                return (
+                    !item.topic_name
+
+                    ||
+
+                    !String(
+                        item.topic_name
+                    ).trim()
+
+                    ||
+
+                    !item.normalized_topic_name
+
+                    ||
+
+                    !String(
+                        item.normalized_topic_name
+                    ).trim()
+                );
+            }
+        );
+
+
+    if (
+        invalidClassification
+    ) {
+
+        throw new Error(
+            "Existe pelo menos uma questão sem assunto válido. A importação foi bloqueada."
+        );
+    }
+
+
+    /* ========================================================
+       7. AGRUPAR QUESTÕES POR ASSUNTO
+       ======================================================== */
+
+    const groupedTopics =
+        new Map();
+
+
+    classifications.forEach(
+        function(item) {
+
+            const normalizedName =
+                normalizarTextoPareto(
+                    item.normalized_topic_name ||
+                    item.topic_name
+                );
+
+
+            if (
+                !groupedTopics.has(
+                    normalizedName
+                )
+            ) {
+
+                groupedTopics.set(
+                    normalizedName,
+                    {
+                        topic_name:
+                            String(
+                                item.topic_name
+                            ).trim(),
+
+                        normalized_topic_name:
+                            normalizedName,
+
+                        question_count:
+                            0
+                    }
+                );
+            }
+
+
+            groupedTopics.get(
+                normalizedName
+            ).question_count +=
+                1;
+        }
+    );
+
+
+    /* ========================================================
+       8. MONTAR LINHAS PARA O PARETO
+       ======================================================== */
+
+    const rows =
+        Array.from(
+            groupedTopics.values()
+        )
+        .map(
+            function(topic) {
+
+                return {
+
+                    past_exam_id:
+                        pastExamId,
+
+                    subject_id:
+                        subjectId,
+
+                    subject_review_id:
+                        review.id,
+
+                    topic_name:
+                        topic.topic_name,
+
+                    normalized_topic_name:
+                        topic.normalized_topic_name,
+
+                    question_count:
+                        topic.question_count,
+
+                    statistical_weight:
+                        statisticalWeight,
+
+                    reference:
+                        candidate.source_url
+                };
+            }
+        );
+
+
+    /* ========================================================
+       9. VALIDAR SOMA FINAL
+       ======================================================== */
+
+    const importedQuestions =
+        rows.reduce(
+            function(
+                total,
+                row
+            ) {
+
+                return (
+                    total +
+                    Number(
+                        row.question_count ||
+                        0
+                    )
+                );
+            },
+            0
+        );
+
+
+    if (
+        importedQuestions !==
+        expectedQuestions
+    ) {
+
+        throw new Error(
+            "Erro de consistência: eram esperadas " +
+            expectedQuestions +
+            " questões, mas o agrupamento resultou em " +
+            importedQuestions +
+            ". Nenhum dado foi importado."
+        );
+    }
+
+
+    /* ========================================================
+       10. APAGAR IMPORTAÇÃO ANTIGA DA MATÉRIA
+       ======================================================== */
+
+    const {
+        error: deleteError
     } =
         await supabaseClient
 
@@ -2269,84 +2600,12 @@ async function importarMateriaHistorica(
     }
 
 
-    const rows =
-        topics
-
-            .filter(
-                function(topic) {
-
-                    return (
-
-                        topic
-
-                        &&
-
-                        topic.name
-
-                        &&
-
-                        Number(
-                            topic.question_count ||
-                            0
-                        ) >
-                        0
-                    );
-                }
-            )
-
-            .map(
-                function(topic) {
-
-                    return {
-
-                        past_exam_id:
-                            pastExamId,
-
-                        subject_id:
-                            subjectId,
-
-                        subject_review_id:
-                            review.id,
-
-                        topic_name:
-                            topic.name,
-
-                        normalized_topic_name:
-                            normalizarTextoPareto(
-                                topic.normalized_name ||
-                                topic.name
-                            ),
-
-                        question_count:
-                            Number(
-                                topic.question_count ||
-                                0
-                            ),
-
-                        statistical_weight:
-                            statisticalWeight,
-
-                        reference:
-                            candidate.source_url
-                    };
-                }
-            );
-
-
-    if (
-        rows.length ===
-        0
-    ) {
-
-        throw new Error(
-            "Nenhuma questão válida foi encontrada para importar."
-        );
-    }
-
+    /* ========================================================
+       11. INSERIR NOVA DISTRIBUIÇÃO
+       ======================================================== */
 
     const {
-        error:
-            insertError
+        error: insertError
     } =
         await supabaseClient
 
@@ -2367,10 +2626,32 @@ async function importarMateriaHistorica(
     }
 
 
-    return rows.length;
+    console.log(
+        "Matéria importada para o Pareto:",
+        {
+            subject:
+                review.subject_name,
+
+            questions:
+                importedQuestions,
+
+            topics:
+                rows.length,
+
+            weight:
+                statisticalWeight
+        }
+    );
+
+
+    return {
+        topics:
+            rows.length,
+
+        questions:
+            importedQuestions
+    };
 }
-
-
 /* ============================================================
    REMOVER MATÉRIA HISTÓRICA
    ============================================================ */
@@ -2406,7 +2687,8 @@ async function removerMateriaHistorica(
 
 
 /* ============================================================
-   CLIQUES DAS MATÉRIAS
+   CLIQUES:
+   APROVAR / RESSALVA / DESCARTAR
    ============================================================ */
 
 candidateList.addEventListener(
@@ -2432,6 +2714,10 @@ candidateList.addEventListener(
         const action =
             button.dataset.subjectAction;
 
+
+        /* ====================================================
+           LOCALIZAR PROVA E MATÉRIA
+           ==================================================== */
 
         let candidateEncontrado =
             null;
@@ -2501,6 +2787,54 @@ candidateList.addEventListener(
         }
 
 
+        /* ====================================================
+           SEGURANÇA DE COBERTURA
+           ==================================================== */
+
+        const coverage =
+            Number(
+                reviewEncontrado.coverage_percent ||
+                0
+            );
+
+
+        if (
+            action === "approved" &&
+            coverage < 85
+        ) {
+
+            mostrarMensagem(
+                "error",
+                "Esta matéria não possui cobertura suficiente para aprovação completa."
+            );
+
+
+            return;
+        }
+
+
+        if (
+            action === "approved_partial" &&
+            (
+                coverage < 70 ||
+                coverage >= 85
+            )
+        ) {
+
+            mostrarMensagem(
+                "error",
+                "A aprovação com ressalva é permitida somente para cobertura entre 70% e 84,9%."
+            );
+
+
+            return;
+        }
+
+
+        /* ====================================================
+           DEFINIR PESO ESTATÍSTICO
+           ==================================================== */
+
         let statisticalWeight =
             0;
 
@@ -2525,6 +2859,14 @@ candidateList.addEventListener(
         }
 
 
+        /* ====================================================
+           PROCESSAMENTO
+           ==================================================== */
+
+        const textoOriginal =
+            button.textContent;
+
+
         button.disabled =
             true;
 
@@ -2535,17 +2877,21 @@ candidateList.addEventListener(
 
         try {
 
+            /* =================================================
+               APROVAR
+               ================================================= */
+
             if (
                 action ===
-                "approved"
+                    "approved"
 
                 ||
 
                 action ===
-                "approved_partial"
+                    "approved_partial"
             ) {
 
-                const importedTopics =
+                const importResult =
                     await importarMateriaHistorica(
 
                         candidateEncontrado,
@@ -2554,6 +2900,15 @@ candidateList.addEventListener(
 
                         statisticalWeight
                     );
+
+
+                /* =============================================
+                   ATUALIZAR STATUS DA REVISÃO
+                   ============================================= */
+
+                const agora =
+                    new Date()
+                        .toISOString();
 
 
                 const {
@@ -2568,7 +2923,6 @@ candidateList.addEventListener(
 
                         .update(
                             {
-
                                 status:
                                     action,
 
@@ -2576,12 +2930,10 @@ candidateList.addEventListener(
                                     statisticalWeight,
 
                                 approved_at:
-                                    new Date()
-                                        .toISOString(),
+                                    agora,
 
                                 updated_at:
-                                    new Date()
-                                        .toISOString()
+                                    agora
                             }
                         )
 
@@ -2595,9 +2947,24 @@ candidateList.addEventListener(
                     updateError
                 ) {
 
+                    /*
+                     * Evita deixar os dados na base Pareto
+                     * caso o status da matéria não possa
+                     * ser atualizado.
+                     */
+
+                    await removerMateriaHistorica(
+                        reviewId
+                    );
+
+
                     throw updateError;
                 }
 
+
+                /* =============================================
+                   MENSAGEM DE SUCESSO
+                   ============================================= */
 
                 if (
                     action ===
@@ -2613,11 +2980,14 @@ candidateList.addEventListener(
 
                         " aprovada. " +
 
-                        importedTopics +
+                        importResult.questions +
 
-                        " assunto(s) adicionados à base Pareto."
+                        " questão(ões) distribuída(s) em " +
+
+                        importResult.topics +
+
+                        " assunto(s) na base Pareto."
                     );
-
 
                 } else {
 
@@ -2630,13 +3000,21 @@ candidateList.addEventListener(
 
                         " aprovada com ressalva. " +
 
-                        importedTopics +
+                        importResult.questions +
 
-                        " assunto(s) adicionados com peso 0,50."
+                        " questão(ões) distribuída(s) em " +
+
+                        importResult.topics +
+
+                        " assunto(s), com peso estatístico 0,50."
                     );
                 }
             }
 
+
+            /* =================================================
+               DESCARTAR
+               ================================================= */
 
             else if (
                 action ===
@@ -2660,7 +3038,6 @@ candidateList.addEventListener(
 
                         .update(
                             {
-
                                 status:
                                     "rejected",
 
@@ -2702,6 +3079,22 @@ candidateList.addEventListener(
             }
 
 
+            /* =================================================
+               AÇÃO DESCONHECIDA
+               ================================================= */
+
+            else {
+
+                throw new Error(
+                    "Ação de matéria inválida."
+                );
+            }
+
+
+            /* =================================================
+               RECARREGAR INTERFACE
+               ================================================= */
+
             await carregarCandidatos();
 
 
@@ -2731,10 +3124,13 @@ candidateList.addEventListener(
 
             button.disabled =
                 false;
+
+
+            button.textContent =
+                textoOriginal;
         }
     }
 );
-
 /* ============================================================
    REFINAR QUESTÕES INDIVIDUALMENTE
    ============================================================ */
@@ -2763,6 +3159,10 @@ candidateList.addEventListener(
 
             return;
         }
+
+
+        const textoOriginal =
+            button.textContent;
 
 
         button.disabled =
@@ -2831,16 +3231,50 @@ candidateList.addEventListener(
             }
 
 
+            /* =================================================
+               VALIDAÇÃO EXTRA DA RESPOSTA
+               ================================================= */
+
+            const expected =
+                Number(
+                    data.expected_questions ||
+                    0
+                );
+
+
+            const classified =
+                Number(
+                    data.classified_questions ||
+                    0
+                );
+
+
+            if (
+                expected <= 0
+                ||
+                classified !== expected
+            ) {
+
+                throw new Error(
+                    "O refinamento retornou " +
+                    classified +
+                    " classificação(ões), mas eram esperadas " +
+                    expected +
+                    "."
+                );
+            }
+
+
             mostrarMensagem(
                 "success",
 
                 "✅ Refinamento concluído! " +
 
-                data.classified_questions +
+                classified +
 
                 "/" +
 
-                data.expected_questions +
+                expected +
 
                 " questões classificadas. Cobertura: " +
 
@@ -2852,6 +3286,18 @@ candidateList.addEventListener(
                 "%."
             );
 
+
+            /*
+             * Atualiza a tela.
+             * Depois do refinamento, uma matéria como
+             * Direito Tributário deve passar de:
+             *
+             * 19 / 0 / 0%
+             *
+             * para:
+             *
+             * 19 / 19 / 100%
+             */
 
             await carregarCandidatos();
 
@@ -2881,7 +3327,7 @@ candidateList.addEventListener(
 
 
             button.textContent =
-                "🎯 Refinar questão por questão";
+                textoOriginal;
         }
     }
 );
