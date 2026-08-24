@@ -1110,6 +1110,611 @@ candidateList.addEventListener(
     }
 );
 /* ============================================================
+   NORMALIZAR TEXTO
+   ============================================================ */
+
+function normalizarTextoPareto(valor) {
+
+    return String(
+        valor || ""
+    )
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .trim()
+        .toLowerCase();
+}
+
+
+/* ============================================================
+   LOCALIZAR DISCIPLINA DO NOSSO EDITAL
+   ============================================================ */
+
+async function localizarSubjectId(
+    nomeMateria
+) {
+
+    const examId =
+        examSelect.value;
+
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+
+            .from(
+                "exam_subjects"
+            )
+
+            .select(
+                `
+                subject_id,
+
+                subject:subjects (
+                    id,
+                    name
+                )
+                `
+            )
+
+            .eq(
+                "exam_id",
+                examId
+            );
+
+
+    if (error) {
+
+        console.error(
+            "Erro ao localizar disciplina:",
+            error
+        );
+
+        throw error;
+    }
+
+
+    const nomeNormalizado =
+        normalizarTextoPareto(
+            nomeMateria
+        );
+
+
+    for (
+        const item
+        of data || []
+    ) {
+
+        const subject =
+            Array.isArray(
+                item.subject
+            )
+                ? item.subject[0]
+                : item.subject;
+
+
+        if (!subject) {
+            continue;
+        }
+
+
+        if (
+            normalizarTextoPareto(
+                subject.name
+            ) ===
+            nomeNormalizado
+        ) {
+
+            return subject.id;
+        }
+    }
+
+
+    /*
+     * Se o nome histórico for um pouco diferente,
+     * fazemos uma segunda tentativa no catálogo.
+     */
+
+    const {
+        data: subjects,
+        error: subjectError
+    } =
+        await supabaseClient
+
+            .from("subjects")
+
+            .select(
+                "id, name"
+            );
+
+
+    if (subjectError) {
+
+        throw subjectError;
+    }
+
+
+    const encontrado =
+        (subjects || [])
+            .find(
+                function(subject) {
+
+                    return (
+                        normalizarTextoPareto(
+                            subject.name
+                        )
+                        ===
+                        nomeNormalizado
+                    );
+                }
+            );
+
+
+    return encontrado
+        ?.id ||
+        null;
+}
+
+
+/* ============================================================
+   CRIAR OU REUTILIZAR PROVA HISTÓRICA
+   ============================================================ */
+
+async function obterPastExam(
+    candidate
+) {
+
+    const {
+        data: sessionData
+    } =
+        await supabaseClient
+            .auth
+            .getSession();
+
+
+    const userId =
+        sessionData
+            ?.session
+            ?.user
+            ?.id;
+
+
+    if (!userId) {
+
+        throw new Error(
+            "Usuário não identificado."
+        );
+    }
+
+
+    /*
+     * Procura se essa URL já foi
+     * transformada em prova histórica.
+     */
+
+    const {
+        data: existing,
+        error: searchError
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exams"
+            )
+
+            .select(
+                "id"
+            )
+
+            .eq(
+                "user_id",
+                userId
+            )
+
+            .eq(
+                "source_url",
+                candidate.source_url
+            )
+
+            .limit(1)
+            .maybeSingle();
+
+
+    if (searchError) {
+
+        throw searchError;
+    }
+
+
+    if (existing) {
+
+        return existing.id;
+    }
+
+
+    /*
+     * Soma o total de questões identificadas
+     * nas matérias da prova.
+     */
+
+    const subjects =
+        Array.isArray(
+            candidate
+                ?.source_metadata
+                ?.subjects
+        )
+            ? candidate.source_metadata.subjects
+            : [];
+
+
+    const totalQuestions =
+        subjects.reduce(
+            function(
+                total,
+                subject
+            ) {
+
+                return (
+                    total +
+                    Number(
+                        subject
+                            ?.question_count ||
+                        0
+                    )
+                );
+            },
+            0
+        );
+
+
+    const {
+        data: created,
+        error: insertError
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exams"
+            )
+
+            .insert(
+                {
+
+                    user_id:
+                        userId,
+
+                    board:
+                        candidate.board ||
+                        "Não identificada",
+
+                    organization:
+                        candidate.organization ||
+                        null,
+
+                    position:
+                        candidate.position ||
+                        null,
+
+                    position_family:
+                        candidate.position_family ||
+                        null,
+
+                    area:
+                        candidate.area ||
+                        null,
+
+                    exam_year:
+                        candidate.exam_year ||
+                        null,
+
+                    exam_date:
+                        candidate.exam_date ||
+                        null,
+
+                    total_questions:
+                        totalQuestions > 0
+                            ? totalQuestions
+                            : null,
+
+                    source_name:
+                        candidate.title ||
+                        "Prova anterior",
+
+                    source_url:
+                        candidate.source_url,
+
+                    verified:
+                        true,
+
+                    notes:
+                        "Importada pelo Modo Pareto do AprovaTrack."
+                }
+            )
+
+            .select(
+                "id"
+            )
+
+            .single();
+
+
+    if (insertError) {
+
+        throw insertError;
+    }
+
+
+    return created.id;
+}
+
+
+/* ============================================================
+   LOCALIZAR MATÉRIA NA ANÁLISE DA IA
+   ============================================================ */
+
+function localizarMateriaAnalisada(
+    candidate,
+    review
+) {
+
+    const subjects =
+        Array.isArray(
+            candidate
+                ?.source_metadata
+                ?.subjects
+        )
+            ? candidate.source_metadata.subjects
+            : [];
+
+
+    const target =
+        normalizarTextoPareto(
+            review.normalized_subject_name ||
+            review.subject_name
+        );
+
+
+    return (
+        subjects.find(
+            function(subject) {
+
+                return (
+                    normalizarTextoPareto(
+                        subject.name
+                    ) ===
+                    target
+                );
+            }
+        )
+        ||
+        null
+    );
+}
+
+
+/* ============================================================
+   IMPORTAR MATÉRIA PARA BASE HISTÓRICA
+   ============================================================ */
+
+async function importarMateriaHistorica(
+    candidate,
+    review,
+    statisticalWeight
+) {
+
+    const subjectId =
+        await localizarSubjectId(
+            review.subject_name
+        );
+
+
+    if (!subjectId) {
+
+        throw new Error(
+            "Não encontrei '" +
+            review.subject_name +
+            "' entre as disciplinas cadastradas."
+        );
+    }
+
+
+    const analyzedSubject =
+        localizarMateriaAnalisada(
+            candidate,
+            review
+        );
+
+
+    if (!analyzedSubject) {
+
+        throw new Error(
+            "Não encontrei os assuntos de '" +
+            review.subject_name +
+            "' na análise da prova."
+        );
+    }
+
+
+    const pastExamId =
+        await obterPastExam(
+            candidate
+        );
+
+
+    const topics =
+        Array.isArray(
+            analyzedSubject.topics
+        )
+            ? analyzedSubject.topics
+            : [];
+
+
+    /*
+     * Remove a versão anterior somente
+     * dessa matéria/revisão.
+     *
+     * Isso permite mudar de aprovado para
+     * aprovado com ressalva sem duplicações.
+     */
+
+    const {
+        error: deleteError
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exam_topic_counts"
+            )
+
+            .delete()
+
+            .eq(
+                "subject_review_id",
+                review.id
+            );
+
+
+    if (deleteError) {
+
+        throw deleteError;
+    }
+
+
+    if (
+        topics.length === 0
+    ) {
+
+        throw new Error(
+            "Nenhum assunto classificado foi encontrado para esta matéria."
+        );
+    }
+
+
+    const rows =
+        topics
+
+            .filter(
+                function(topic) {
+
+                    return (
+                        topic &&
+                        topic.name &&
+                        Number(
+                            topic.question_count ||
+                            0
+                        ) > 0
+                    );
+                }
+            )
+
+            .map(
+                function(topic) {
+
+                    return {
+
+                        past_exam_id:
+                            pastExamId,
+
+                        subject_id:
+                            subjectId,
+
+                        subject_review_id:
+                            review.id,
+
+                        topic_name:
+                            topic.name,
+
+                        normalized_topic_name:
+                            normalizarTextoPareto(
+                                topic.normalized_name ||
+                                topic.name
+                            ),
+
+                        question_count:
+                            Number(
+                                topic.question_count ||
+                                0
+                            ),
+
+                        statistical_weight:
+                            statisticalWeight,
+
+                        reference:
+                            candidate.source_url
+                    };
+                }
+            );
+
+
+    if (
+        rows.length === 0
+    ) {
+
+        throw new Error(
+            "Nenhuma questão válida foi encontrada para importar."
+        );
+    }
+
+
+    const {
+        error: insertError
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exam_topic_counts"
+            )
+
+            .insert(
+                rows
+            );
+
+
+    if (insertError) {
+
+        throw insertError;
+    }
+
+
+    return rows.length;
+}
+
+
+/* ============================================================
+   REMOVER MATÉRIA DA BASE HISTÓRICA
+   ============================================================ */
+
+async function removerMateriaHistorica(
+    reviewId
+) {
+
+    const {
+        error
+    } =
+        await supabaseClient
+
+            .from(
+                "past_exam_topic_counts"
+            )
+
+            .delete()
+
+            .eq(
+                "subject_review_id",
+                reviewId
+            );
+
+
+    if (error) {
+
+        throw error;
+    }
+}
+/* ============================================================
    APROVAÇÃO POR MATÉRIA
    ============================================================ */
 
@@ -1121,6 +1726,308 @@ candidateList.addEventListener(
             event.target.closest(
                 "[data-subject-action][data-review-id]"
             );
+
+
+        if (!button) {
+
+            return;
+        }
+
+
+        const reviewId =
+            button.dataset.reviewId;
+
+
+        const action =
+            button.dataset.subjectAction;
+
+
+        /*
+         * Descobre a prova e a matéria
+         * correspondentes ao botão clicado.
+         */
+
+        let candidateEncontrado =
+            null;
+
+
+        let reviewEncontrado =
+            null;
+
+
+        for (
+            const candidate
+            of currentCandidates
+        ) {
+
+            const reviews =
+                Array.isArray(
+                    candidate.subject_reviews
+                )
+                    ? candidate.subject_reviews
+                    : [];
+
+
+            const review =
+                reviews.find(
+                    function(item) {
+
+                        return (
+                            item.id ===
+                            reviewId
+                        );
+                    }
+                );
+
+
+            if (review) {
+
+                candidateEncontrado =
+                    candidate;
+
+                reviewEncontrado =
+                    review;
+
+                break;
+            }
+        }
+
+
+        if (
+            !candidateEncontrado ||
+            !reviewEncontrado
+        ) {
+
+            mostrarMensagem(
+                "error",
+                "Não foi possível identificar a matéria selecionada."
+            );
+
+            return;
+        }
+
+
+        let statisticalWeight =
+            0;
+
+
+        if (
+            action ===
+            "approved"
+        ) {
+
+            statisticalWeight =
+                1;
+        }
+
+
+        else if (
+            action ===
+            "approved_partial"
+        ) {
+
+            statisticalWeight =
+                0.5;
+        }
+
+
+        button.disabled =
+            true;
+
+
+        button.textContent =
+            "Processando...";
+
+
+        try {
+
+            /*
+             * APROVADA OU APROVADA COM RESSALVA
+             */
+
+            if (
+                action ===
+                "approved"
+
+                ||
+
+                action ===
+                "approved_partial"
+            ) {
+
+                const importedTopics =
+                    await importarMateriaHistorica(
+
+                        candidateEncontrado,
+
+                        reviewEncontrado,
+
+                        statisticalWeight
+                    );
+
+
+                const {
+                    error: updateError
+                } =
+                    await supabaseClient
+
+                        .from(
+                            "past_exam_subject_reviews"
+                        )
+
+                        .update(
+                            {
+
+                                status:
+                                    action,
+
+                                statistical_weight:
+                                    statisticalWeight,
+
+                                approved_at:
+                                    new Date()
+                                        .toISOString(),
+
+                                updated_at:
+                                    new Date()
+                                        .toISOString()
+                            }
+                        )
+
+                        .eq(
+                            "id",
+                            reviewId
+                        );
+
+
+                if (updateError) {
+
+                    throw updateError;
+                }
+
+
+                if (
+                    action ===
+                    "approved"
+                ) {
+
+                    mostrarMensagem(
+                        "success",
+
+                        "✅ " +
+                        reviewEncontrado.subject_name +
+                        " aprovada. " +
+                        importedTopics +
+                        " assunto(s) adicionados à base Pareto."
+                    );
+
+                } else {
+
+                    mostrarMensagem(
+                        "success",
+
+                        "⚠️ " +
+                        reviewEncontrado.subject_name +
+                        " aprovada com ressalva. " +
+                        importedTopics +
+                        " assunto(s) adicionados com peso 0,50."
+                    );
+                }
+            }
+
+
+            /*
+             * DESCARTADA
+             */
+
+            else if (
+                action ===
+                "rejected"
+            ) {
+
+                await removerMateriaHistorica(
+                    reviewId
+                );
+
+
+                const {
+                    error: rejectError
+                } =
+                    await supabaseClient
+
+                        .from(
+                            "past_exam_subject_reviews"
+                        )
+
+                        .update(
+                            {
+
+                                status:
+                                    "rejected",
+
+                                statistical_weight:
+                                    0,
+
+                                approved_at:
+                                    null,
+
+                                updated_at:
+                                    new Date()
+                                        .toISOString()
+                            }
+                        )
+
+                        .eq(
+                            "id",
+                            reviewId
+                        );
+
+
+                if (rejectError) {
+
+                    throw rejectError;
+                }
+
+
+                mostrarMensagem(
+                    "success",
+
+                    "❌ " +
+                    reviewEncontrado.subject_name +
+                    " foi retirada da base Pareto."
+                );
+            }
+
+
+            await carregarCandidatos();
+
+
+        } catch (error) {
+
+            console.error(
+                "Erro ao processar matéria Pareto:",
+                error
+            );
+
+
+            mostrarMensagem(
+                "error",
+
+                "Erro ao processar " +
+                reviewEncontrado.subject_name +
+                ": " +
+                (
+                    error?.message ||
+                    "erro desconhecido"
+                )
+            );
+
+
+            button.disabled =
+                false;
+        }
+    }
+);
 
 
         if (!button) {
