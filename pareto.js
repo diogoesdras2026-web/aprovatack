@@ -565,6 +565,29 @@ function montarConteudo(
     ) {
 
         return `
+        ${
+    coverage < 85
+
+        ? `
+        <div style="margin-top:12px;">
+
+            <button
+                type="button"
+                class="action-button"
+                style="
+                    background:#7c3aed;
+                    color:white;
+                "
+                data-refine-review-id="${review.id}"
+            >
+                🎯 Refinar questão por questão
+            </button>
+
+        </div>
+        `
+
+        : ""
+}
             <div
                 style="
                     margin-top:16px;
@@ -2694,7 +2717,156 @@ candidateList.addEventListener(
     }
 );
 
+/* ============================================================
+   REFINAR QUESTÕES INDIVIDUALMENTE
+   ============================================================ */
 
+candidateList.addEventListener(
+    "click",
+    async function(event) {
+
+        const button =
+            event.target.closest(
+                "[data-refine-review-id]"
+            );
+
+
+        if (!button) {
+
+            return;
+        }
+
+
+        const reviewId =
+            button.dataset.refineReviewId;
+
+
+        if (!reviewId) {
+
+            return;
+        }
+
+
+        button.disabled =
+            true;
+
+
+        button.textContent =
+            "🎯 Classificando questões...";
+
+
+        mostrarMensagem(
+            "info",
+            "A IA está analisando cada questão individualmente. Isso pode levar alguns segundos."
+        );
+
+
+        try {
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient
+                    .functions
+                    .invoke(
+                        "analisar-questoes-prova",
+                        {
+                            body: {
+                                subject_review_id:
+                                    reviewId
+                            }
+                        }
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    "Erro na função de refinamento:",
+                    error
+                );
+
+
+                throw new Error(
+                    error.message ||
+                    "Falha ao analisar as questões."
+                );
+            }
+
+
+            if (
+                !data ||
+                data.ok !== true
+            ) {
+
+                console.error(
+                    "Resposta do refinamento:",
+                    data
+                );
+
+
+                throw new Error(
+                    data?.error ||
+                    "A classificação das questões não pôde ser concluída."
+                );
+            }
+
+
+            mostrarMensagem(
+                "success",
+
+                "✅ Refinamento concluído! " +
+
+                data.classified_questions +
+
+                "/" +
+
+                data.expected_questions +
+
+                " questões classificadas. Cobertura: " +
+
+                Number(
+                    data.coverage_percent ||
+                    0
+                ).toFixed(1) +
+
+                "%."
+            );
+
+
+            await carregarCandidatos();
+
+
+        } catch (error) {
+
+            console.error(
+                "Erro ao refinar matéria:",
+                error
+            );
+
+
+            mostrarMensagem(
+                "error",
+
+                "Erro ao refinar a matéria: " +
+
+                (
+                    error?.message ||
+                    "erro desconhecido"
+                )
+            );
+
+
+            button.disabled =
+                false;
+
+
+            button.textContent =
+                "🎯 Refinar questão por questão";
+        }
+    }
+);
 /* ============================================================
    EVENTOS
    ============================================================ */
