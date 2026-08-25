@@ -321,7 +321,53 @@ async function carregarConcursos() {
         examSelect.value =
             data[0].id;
 
-        await carregarCandidatos();
+      const examId =
+    examSelect.value;
+
+
+if (examId) {
+
+    const {
+        error: paretoError
+    } =
+        await supabaseClient
+            .rpc(
+                "recalcular_pareto_exam",
+                {
+                    p_exam_id:
+                        examId
+                }
+            );
+
+
+    if (
+        paretoError
+    ) {
+
+        console.error(
+            "Erro ao recalcular Pareto:",
+            paretoError
+        );
+
+
+        mostrarMensagem(
+            "error",
+            "A matéria foi processada, mas o ranking Pareto não pôde ser recalculado."
+        );
+
+    } else {
+
+        console.log(
+            "Ranking Pareto recalculado automaticamente."
+        );
+    }
+}
+
+
+await carregarCandidatos();
+
+
+await carregarRankingPareto();
     }
 
 
