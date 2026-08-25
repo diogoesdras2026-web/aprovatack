@@ -449,7 +449,55 @@ class="message"
 ></div>
 
 </section>
+<section
+    id="uploadProvaHistoricaSection"
+    style="
+        margin-top: 24px;
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid #e5e7eb;
+    "
+>
+    <h2>📄 Enviar PDF da prova histórica</h2>
 
+    <p style="color:#6b7280;">
+        Envie o arquivo PDF de uma prova anterior.
+        A IA poderá analisar as disciplinas e classificar
+        as questões para o Modo Pareto.
+    </p>
+
+    <input
+        type="file"
+        id="provaHistoricaPdf"
+        accept="application/pdf,.pdf"
+        style="
+            display:block;
+            width:100%;
+            margin-top:16px;
+            margin-bottom:16px;
+        "
+    >
+
+    <button
+        type="button"
+        id="analisarProvaPdfBtn"
+        style="
+            padding:12px 18px;
+            border:none;
+            border-radius:10px;
+            cursor:pointer;
+            font-weight:600;
+        "
+    >
+        🤖 Analisar PDF da prova
+    </button>
+
+    <div
+        id="provaPdfStatus"
+        style="margin-top:14px;"
+    ></div>
+</section>
 
 <!-- ======================================================
         RESUMO
