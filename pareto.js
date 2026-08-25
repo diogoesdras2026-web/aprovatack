@@ -2453,9 +2453,8 @@ async function importarMateriaHistorica(
     classifications.forEach(
         function(item) {
 
-          const normalizedName =
+        const normalizedName =
     normalizarTextoPareto(
-        item.normalized_topic_name ||
         item.topic_name
     );
 
