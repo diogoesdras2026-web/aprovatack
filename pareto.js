@@ -19,7 +19,15 @@ const supabaseClient =
 /* ============================================================
    ELEMENTOS
    ============================================================ */
+const paretoRankingSection =
+    document.getElementById(
+        "paretoRankingSection"
+    );
 
+const paretoRankingList =
+    document.getElementById(
+        "paretoRankingList"
+    );
 const examSelect =
     document.getElementById(
         "examSelect"
@@ -313,7 +321,266 @@ async function carregarConcursos() {
         examSelect.value =
             data[0].id;
 
+/* ============================================================
+   CARREGAR RANKING PARETO
+   ============================================================ */
 
+async function carregarRankingPareto() {
+
+    const examId =
+        examSelect.value;
+
+
+    if (!examId) {
+
+        paretoRankingSection
+            .classList
+            .add(
+                "hidden"
+            );
+
+        return;
+    }
+
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .from(
+                "exam_topic_priorities"
+            )
+            .select(
+                `
+                historical_questions,
+                sample_exams,
+                frequency_percent,
+                cumulative_percent,
+                pareto_class,
+                priority_score,
+
+                topic:topics (
+                    id,
+                    name
+                )
+                `
+            )
+            .eq(
+                "exam_id",
+                examId
+            )
+            .order(
+                "cumulative_percent",
+                {
+                    ascending: true
+                }
+            );
+
+
+    if (error) {
+
+        console.error(
+            "Erro ao carregar ranking Pareto:",
+            error
+        );
+
+        paretoRankingSection
+            .classList
+            .add(
+                "hidden"
+            );
+
+        return;
+    }
+
+
+    if (
+        !data ||
+        data.length === 0
+    ) {
+
+        paretoRankingList.innerHTML =
+            `
+            <div
+                style="
+                    color:#64748b;
+                "
+            >
+                Nenhum ranking Pareto calculado ainda.
+            </div>
+            `;
+
+
+        paretoRankingSection
+            .classList
+            .remove(
+                "hidden"
+            );
+
+        return;
+    }
+
+
+    let html =
+        "";
+
+
+    data.forEach(
+        function(item, index) {
+
+            const topic =
+                Array.isArray(
+                    item.topic
+                )
+                    ? item.topic[0]
+                    : item.topic;
+
+
+            const classe =
+                item.pareto_class ||
+                "C";
+
+
+            let classeLabel =
+                "Menor incidência";
+
+
+            let classeIcon =
+                "🟢";
+
+
+            if (
+                classe === "A"
+            ) {
+
+                classeLabel =
+                    "Alta prioridade";
+
+                classeIcon =
+                    "🔥";
+            }
+
+
+            else if (
+                classe === "B"
+            ) {
+
+                classeLabel =
+                    "Prioridade média";
+
+                classeIcon =
+                    "🟡";
+            }
+
+
+            html +=
+                `
+                <div
+                    style="
+                        padding:14px 0;
+                        border-bottom:1px solid #e5e7eb;
+                    "
+                >
+
+                    <div
+                        style="
+                            display:flex;
+                            justify-content:space-between;
+                            gap:15px;
+                            align-items:flex-start;
+                        "
+                    >
+
+                        <div>
+
+                            <div
+                                style="
+                                    font-weight:700;
+                                    line-height:1.4;
+                                "
+                            >
+                                ${index + 1}.
+                                ${topic?.name || "Assunto"}
+                            </div>
+
+                            <div
+                                style="
+                                    margin-top:5px;
+                                    color:#64748b;
+                                    font-size:13px;
+                                "
+                            >
+                                ${classeIcon}
+                                Classe ${classe}
+                                —
+                                ${classeLabel}
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                font-weight:700;
+                                white-space:nowrap;
+                            "
+                        >
+                            ${Number(
+                                item.frequency_percent ||
+                                0
+                            ).toFixed(2)}%
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        style="
+                            margin-top:8px;
+                            font-size:13px;
+                            color:#64748b;
+                        "
+                    >
+                        Acumulado:
+                        ${Number(
+                            item.cumulative_percent ||
+                            0
+                        ).toFixed(2)}%
+
+                        ·
+
+                        Provas:
+                        ${Number(
+                            item.sample_exams ||
+                            0
+                        )}
+
+                        ·
+
+                        Questões ponderadas:
+                        ${Number(
+                            item.historical_questions ||
+                            0
+                        ).toFixed(2)}
+                    </div>
+
+                </div>
+                `;
+        }
+    );
+
+
+    paretoRankingList.innerHTML =
+        html;
+
+
+    paretoRankingSection
+        .classList
+        .remove(
+            "hidden"
+        );
+}
         await carregarCandidatos();
     }
 
@@ -1489,7 +1756,7 @@ async function carregarCandidatos() {
 
 
         renderizarCandidatos();
-
+await carregarRankingPareto();
 
         return;
     }
