@@ -3559,8 +3559,7 @@ if (analisarProvaPdfBtn) {
                                 Authorization:
                                     `Bearer ${token}`,
 
-                                apikey:
-                                    SUPABASE_ANON_KEY,
+                              apikey: SUPABASE_PUBLISHABLE_KEY,
                             },
 
                             body:
