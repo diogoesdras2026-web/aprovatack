@@ -3634,7 +3634,10 @@ if (analisarProvaPdfBtn) {
             materia.question_count
         )
     );
-
+formDataClassificacao.append(
+    "exam_id",
+    examId
+);
 
     const responseClassificacao =
         await fetch(
