@@ -32,7 +32,14 @@ const examSelect =
     document.getElementById(
         "examSelect"
     );
+const provaHistoricaPdf =
+    document.getElementById("provaHistoricaPdf");
 
+const analisarProvaPdfBtn =
+    document.getElementById("analisarProvaPdfBtn");
+
+const provaPdfStatus =
+    document.getElementById("provaPdfStatus");
 const sourceUrl =
     document.getElementById(
         "sourceUrl"
@@ -3448,7 +3455,43 @@ candidateList.addEventListener(
 /* ============================================================
    REFINAR QUESTÕES INDIVIDUALMENTE
    ============================================================ */
+if (analisarProvaPdfBtn) {
 
+    analisarProvaPdfBtn.addEventListener(
+        "click",
+        async () => {
+
+            const arquivo =
+                provaHistoricaPdf?.files?.[0];
+
+            if (!arquivo) {
+
+                provaPdfStatus.innerText =
+                    "Selecione um arquivo PDF.";
+
+                return;
+            }
+
+            if (
+                arquivo.type !== "application/pdf"
+            ) {
+
+                provaPdfStatus.innerText =
+                    "O arquivo precisa ser um PDF.";
+
+                return;
+            }
+
+            provaPdfStatus.innerText =
+                `PDF selecionado: ${arquivo.name}`;
+
+            console.log(
+                "PDF histórico selecionado:",
+                arquivo
+            );
+        }
+    );
+}
 candidateList.addEventListener(
     "click",
     async function(event) {
