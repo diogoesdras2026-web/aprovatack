@@ -3472,8 +3472,10 @@ if (analisarProvaPdfBtn) {
                 return;
             }
 
+
             if (
-                arquivo.type !== "application/pdf"
+                arquivo.type !==
+                "application/pdf"
             ) {
 
                 provaPdfStatus.innerText =
@@ -3482,13 +3484,149 @@ if (analisarProvaPdfBtn) {
                 return;
             }
 
-            provaPdfStatus.innerText =
-                `PDF selecionado: ${arquivo.name}`;
 
-            console.log(
-                "PDF histórico selecionado:",
-                arquivo
-            );
+            const examId =
+                examSelect.value;
+
+
+            if (!examId) {
+
+                provaPdfStatus.innerText =
+                    "Selecione primeiro o concurso atual.";
+
+                return;
+            }
+
+
+            analisarProvaPdfBtn.disabled =
+                true;
+
+
+            provaPdfStatus.innerText =
+                "🤖 Analisando PDF... Aguarde.";
+
+
+            try {
+
+                const formData =
+                    new FormData();
+
+
+                formData.append(
+                    "file",
+                    arquivo
+                );
+
+
+                formData.append(
+                    "exam_id",
+                    examId
+                );
+
+
+                const {
+                    data: sessionData
+                } =
+                    await supabaseClient
+                        .auth
+                        .getSession();
+
+
+                const token =
+                    sessionData
+                        ?.session
+                        ?.access_token;
+
+
+                if (!token) {
+
+                    throw new Error(
+                        "Sessão não encontrada. Faça login novamente."
+                    );
+                }
+
+
+                const response =
+                    await fetch(
+                        `${SUPABASE_URL}/functions/v1/analisar-prova-pdf`,
+                        {
+
+                            method:
+                                "POST",
+
+                            headers: {
+
+                                Authorization:
+                                    `Bearer ${token}`,
+
+                                apikey:
+                                    SUPABASE_ANON_KEY,
+                            },
+
+                            body:
+                                formData,
+                        }
+                    );
+
+
+                const resultado =
+                    await response.json();
+
+
+                if (
+                    !response.ok ||
+                    !resultado.success
+                ) {
+
+                    throw new Error(
+                        resultado?.error ||
+                        "Não foi possível analisar o PDF."
+                    );
+                }
+
+
+                console.log(
+                    "Resultado da análise do PDF:",
+                    resultado
+                );
+
+
+                const analise =
+                    resultado.analysis;
+
+
+                const quantidadeMaterias =
+                    Array.isArray(
+                        analise?.subjects
+                    )
+                        ? analise.subjects.length
+                        : 0;
+
+
+                provaPdfStatus.innerText =
+                    `✅ PDF analisado: ${quantidadeMaterias} disciplina(s) identificada(s).`;
+
+
+            } catch (error) {
+
+                console.error(
+                    "Erro ao analisar PDF:",
+                    error
+                );
+
+
+                provaPdfStatus.innerText =
+                    `❌ ${
+                        error?.message ||
+                        "Erro ao analisar o PDF."
+                    }`;
+
+            } finally {
+
+                analisarProvaPdfBtn.disabled =
+                    false;
+            }
+
         }
     );
 }
