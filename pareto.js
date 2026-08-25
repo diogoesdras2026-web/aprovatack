@@ -321,6 +321,14 @@ async function carregarConcursos() {
         examSelect.value =
             data[0].id;
 
+        await carregarCandidatos();
+    }
+
+
+    atualizarBotaoAnalise();
+}
+
+
 /* ============================================================
    CARREGAR RANKING PARETO
    ============================================================ */
@@ -580,12 +588,6 @@ async function carregarRankingPareto() {
         .remove(
             "hidden"
         );
-}
-        await carregarCandidatos();
-    }
-
-
-    atualizarBotaoAnalise();
 }
 
 
