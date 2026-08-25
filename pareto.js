@@ -3600,6 +3600,93 @@ if (analisarProvaPdfBtn) {
                     )
                         ? analise.subjects.length
                         : 0;
+               if (
+    quantidadeMaterias === 1
+) {
+
+    const materia =
+        analise.subjects[0];
+
+
+    provaPdfStatus.innerText =
+        `🤖 PDF identificado como ${materia.name}. Classificando ${materia.question_count} questões...`;
+
+
+    const formDataClassificacao =
+        new FormData();
+
+
+    formDataClassificacao.append(
+        "file",
+        arquivo
+    );
+
+
+    formDataClassificacao.append(
+        "subject_name",
+        materia.name
+    );
+
+
+    formDataClassificacao.append(
+        "expected_questions",
+        String(
+            materia.question_count
+        )
+    );
+
+
+    const responseClassificacao =
+        await fetch(
+            `${SUPABASE_URL}/functions/v1/classificar-questoes-pdf`,
+            {
+
+                method:
+                    "POST",
+
+                headers: {
+
+                    Authorization:
+                        `Bearer ${token}`,
+
+                    apikey:
+                        SUPABASE_PUBLISHABLE_KEY,
+                },
+
+                body:
+                    formDataClassificacao,
+            }
+        );
+
+
+    const classificacao =
+        await responseClassificacao.json();
+
+
+    if (
+        !responseClassificacao.ok ||
+        !classificacao.success
+    ) {
+
+        throw new Error(
+            classificacao?.error ||
+            "Não foi possível classificar as questões."
+        );
+    }
+
+
+    console.log(
+        "Classificação individual do PDF:",
+        classificacao
+    );
+
+
+    provaPdfStatus.innerText =
+        `✅ ${classificacao.classified_questions} de ${classificacao.expected_questions} questões classificadas em ${classificacao.subject_name}.`;
+
+
+    return;
+}
 
 
                 provaPdfStatus.innerText =
